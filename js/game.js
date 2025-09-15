@@ -4,21 +4,21 @@
 //
 // Created by: Isaac Ip
 // Created on: Apr 2025
-// This is the Phaser3 game configuration file
+// This is the Phaser 3 game configuration file.
 
 // scene import statements
 import SplashScene from './splashScene.js'
 import TitleScene from './titleScene.js'
 import GameScene from './gameScene.js'
 import DeathScene from './deathScene.js'
-import InstructionsScene from './instructionsScene.js'
+import UpgradeScene from './upgradeScene.js'
 
 // create the new scenes
 const splashScene = new SplashScene()
 const titleScene = new TitleScene()
 const gameScene = new GameScene()
 const deathScene = new DeathScene()
-const instructionsScene = new InstructionsScene()
+const upgradeScene = new UpgradeScene()
 
 /**
  * Start Phaser Game.
@@ -30,7 +30,7 @@ const config = {
   physics: {
     default: 'arcade',
     arcade: {
-      debug: false
+      debug: true
     }
   },
   // set background color
@@ -51,8 +51,8 @@ game.scene.add('splashScene', splashScene)
 game.scene.add('titleScene', titleScene)
 game.scene.add('gameScene', gameScene)
 game.scene.add('deathScene', deathScene)
-game.scene.add('instructionsScene', instructionsScene)
+game.scene.add('upgradeScene', upgradeScene)
 // start the splash scene
 
 // the start scene
-game.scene.start('gameScene')
+game.scene.start('splashScene')

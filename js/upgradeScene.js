@@ -4,19 +4,19 @@
 //
 // Created by: Isaac Ip
 // Created on: Apr 2025
-// This is the Splash Scene
+// This is the Level Scene
 
 /**
- * This class is the Splash Scene.
+ * This class is the Level Scene.
  */
-class SplashScene extends Phaser.Scene {
+class UpgradeScene extends Phaser.Scene {
   /**
    * This method is the constructor.
    */
   constructor() {
-    super({ key: 'splashScene' })
+    super({ key: 'upgradeScene' })
 
-    this.splashSceneBackgroundImage = null
+    this.upgradeableAssaultRifle = null
   }
 
   /**
@@ -26,7 +26,8 @@ class SplashScene extends Phaser.Scene {
    * @param {object} data Any data passed via ScenePlugin.add() or ScenePlugin.start().
    */
   init(data) {
-    this.cameras.main.setBackgroundColor('#ffffff')
+    this.cameras.main.setBackgroundColor('#d2d3d5')
+
   }
 
   /**
@@ -34,8 +35,9 @@ class SplashScene extends Phaser.Scene {
    * Use it to load assets.
    */
   preload() {
-    console.log('Splash Scene')
-    this.load.image('splashSceneBackground', './assets/splash-scene.png')
+    console.log('Upgrade Scene')
+
+    this.load.image('upgradeableAssaultRifle', './assets/.upgradeable-ar.png')
   }
 
   /**
@@ -44,26 +46,22 @@ class SplashScene extends Phaser.Scene {
    * @param {object} data Any data passed via ScenePlugin.add() or ScenePlugin.start().
    */
   create(data) {
-    this.splashSceneBackgroundImage = this.add.sprite(
-      0,
-      0,
-      'splashSceneBackground'
-    )
-    this.splashSceneBackgroundImage.x = 1920 / 2
-    this.splashSceneBackgroundImage.y = 1080 / 2
+    // Create the key object once and store it for reuse
   }
 
   /**
    * Should be overridden by your own Scenes.
    * This method is called once per game step while the scene is running.
-   * @param {number} time - The current time.
-   * @param {number} delta - The delta time in ms since the last frame.
+   * @param {number} time The current time.
+   * @param {number} delta The delta time in ms since the last frame.
    */
   update(time, delta) {
-    if (time > 3000) {
-      this.scene.switch('titleScene')
+    const keyGameObj = this.input.keyboard.addKey('P')
+
+    if (keyGameObj.isDown === true) {
+      this.scene.switch('gameScene')
     }
   }
 }
 
-export default SplashScene
+export default UpgradeScene

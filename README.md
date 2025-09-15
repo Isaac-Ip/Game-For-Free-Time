@@ -1,6 +1,7 @@
 # Game For Free Time
 
-It's just a game for free time.
+It's just a game for free time. 
+This game is playable at: [text](https://isaac-ip.github.io/Game-For-Free-Time/)
 
 Ver. 1.1.0
 Created base game, movements, loadup.

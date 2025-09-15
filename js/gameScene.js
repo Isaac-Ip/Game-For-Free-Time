@@ -11,27 +11,32 @@
  */
 class GameScene extends Phaser.Scene {
   createEnemy() {
-    const enemyXLocation = Math.floor(Math.random() * 1920) + 1; // this will get a number between 1 and 1920
-    let enemyXVelocity = Math.floor(Math.random() * 50) + 1; // this will get a number between 1 and 50
-    enemyXVelocity *= Math.round(Math.random()) ? 1 : -1; // this will add minus sign in 50% of cases
-    const anEnemy = this.physics.add.sprite(enemyXLocation, 100, "enemy");
-    anEnemy.body.velocity.y = 200;
+    // Spawn enemy at a random position within the game bounds, not at the player's position
+    const enemyXLocation = Math.floor(Math.random() * 1920) + 1;
+    let enemyXVelocity = Math.floor(Math.random() * 5) + 1; // Lower velocity for Matter.js
+    enemyXVelocity *= Math.round(Math.random()) ? 1 : -1;
+    const anEnemy = this.matter.add.sprite(enemyXLocation, 100, "enemy");
     anEnemy.setScale(0.5);
-    anEnemy.body.velocity.x = enemyXVelocity;
-    this.enemyGroup.add(anEnemy);
+    anEnemy.setBody({ type: 'rectangle', width: anEnemy.width * 0.5, height: anEnemy.height * 0.5 });
+    anEnemy.setVelocity(enemyXVelocity, 2); // Set initial velocity using Matter.js
+    anEnemy.setIgnoreGravity(true); // If you want enemies to move only by velocity
+    anEnemy.isEnemy = true;
+    this.enemyGroup.push(anEnemy);
   }
   /**
    * This method is the constructor.
    */
-  constructor () {
+  constructor() {
     super({ key: 'gameScene' })
 
-    this.GameSceneBackgroundImage = null
-    this.player = null
-    this.playerReload = null
-    this.enemy = null
-    this.bullet = null
-    this.ammo = 15
+    this.GameSceneBackgroundImage = null;
+    this.player = null;
+    this.playerReload = null;
+    this.enemy = null;
+    this.bullet = null;
+    this.ammo = 15;
+    this.bulletGroup = [];
+    this.enemyGroup = [];
   }
 
   /**
@@ -40,7 +45,7 @@ class GameScene extends Phaser.Scene {
    * before preload() and create().
    * @param {object} data Any data passed via ScenePlugin.add() or ScenePlugin.start().
    */
-  init (data) {
+  init(data) {
     this.cameras.main.setBackgroundColor('#d06a16ff')
   }
 
@@ -48,7 +53,7 @@ class GameScene extends Phaser.Scene {
    * Can be defined on your own Scenes.
    * Use it to load assets.
    */
-  preload () {
+  preload() {
     console.log('Game Scene')
 
     // images
@@ -64,31 +69,56 @@ class GameScene extends Phaser.Scene {
    * Use it to create your game objects.
    * @param {object} data Any data passed via ScenePlugin.add() or ScenePlugin.start().
    */
-  create (data) {
-    this.background = this.add.sprite(0, 0, 'gameSceneBackground')
-    this.background.x = 1920 / 2
-    this.background.y = 1080 / 2
+  create(data) {
+    this.background = this.add.sprite(0, 0, 'gameSceneBackground');
+    this.background.x = 1920 / 2;
+    this.background.y = 1080 / 2;
 
-    this.player = this.physics.add.sprite(1920 / 2, 1080 / 2, 'player')
-    this.player.setScale(0.5)
-    
-    this.bulletGroup = this.physics.add.group()
-    this.enemyGroup = this.physics.add.group()
+    this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'player');
+    this.player.setScale(0.5);
+    this.player.setOrigin(0.5);
+    this.player.setBody({ type: 'rectangle', width: this.player.width * 0.5, height: this.player.height * 0.5 });
+    this.isReloadingTexture = false;
+
+    this.bulletGroup = [];
+    this.enemyGroup = [];
     this.createEnemy();
 
-    this.physics.add.overlap(this.bulletGroup, this.enemyGroup, function (bulletCollide, enemyCollide) {
-      bulletCollide.destroy()
-        enemyCollide.destroy()
-        this.createEnemy();
-    }.bind(this))
+    // Matter.js collision event
+    this.matter.world.on('collisionstart', (event) => {
+      event.pairs.forEach((pair) => {
+        const objA = pair.bodyA.gameObject;
+        const objB = pair.bodyB.gameObject;
+        if (!objA || !objB) return;
+        // Bullet/enemy collision
+        if ((objA.isBullet && objB.isEnemy) || (objB.isBullet && objA.isEnemy)) {
+          const bullet = objA.isBullet ? objA : objB;
+          const enemy = objA.isEnemy ? objA : objB;
+          this.bulletGroup = this.bulletGroup.filter(b => b !== bullet);
+          this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
+          bullet.destroy();
+          enemy.destroy();
+          this.createEnemy();
+        }
+        // Player/enemy collision
+        if ((objA === this.player && objB.isEnemy) || (objB === this.player && objA.isEnemy)) {
+          const enemy = objA.isEnemy ? objA : objB;
+          this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
+          enemy.destroy();
+          this.createEnemy();
+          // You can add more logic here (e.g., reduce health, end game, etc.)
+        }
+      });
+    });
 
     const fireRate = 90; // Milliseconds between shots (e.g., 500ms for 2 shots per second)
 
+    // Only block firing, not all input, during reload
+    this.isFiringBlocked = false;
     this.input.on('pointerdown', (pointer) => {
-
-
+      if (this.isFiringBlocked) return;
       // --- Start continuous firing ---
-      if (!this.firingInterval) {
+      if (!this.firingInterval && !this.reloading) {
         this.firingInterval = this.time.addEvent({
           delay: fireRate,
           loop: true,
@@ -98,40 +128,52 @@ class GameScene extends Phaser.Scene {
               this.firingInterval = null;
               return;
             }
-            // Prevent firing while reloading
             if (this.reloading) {
               return;
             }
-            if (!this.ammo) this.ammo = 15; // Set initial ammo if undefined
+            if (!this.ammo) this.ammo = 15;
             this.ammo--;
-            const bullet = this.physics.add.sprite(this.player.x, this.player.y, 'bullet');
-            bullet.setScale(0.5);
-            this.bulletGroup.add(bullet);
-
             const dx = this.input.activePointer.x - this.player.x;
             const dy = this.input.activePointer.y - this.player.y;
-            // Add a small random spray to the bullet angle
             const baseAngle = Math.atan2(dy, dx);
-            const spray = Phaser.Math.DegToRad(Phaser.Math.Between(-15, 15)); // spray of ±15 degrees
+            const spray = Phaser.Math.DegToRad(Phaser.Math.Between(-2, 2));
             const angle = baseAngle + spray;
 
-            const bulletSpeed = 1500;
-            bullet.body.velocity.x = Math.cos(angle) * bulletSpeed;
-            bullet.body.velocity.y = Math.sin(angle) * bulletSpeed;
-            bullet.rotation = angle;
+            // Spawn bullet slightly in front of player
+            const bulletOffset = 95; // farther in front of player
+            const bulletX = this.player.x + Math.cos(angle) * bulletOffset;
+            const bulletY = this.player.y + Math.sin(angle) * bulletOffset;
+            const bullet = this.matter.add.sprite(bulletX, bulletY, 'bullet');
+            bullet.setScale(0.5);
+            bullet.setBody({ type: 'rectangle', width: bullet.width * 0.5, height: bullet.height * 0.5 });
+            bullet.setIgnoreGravity(true);
+            // Set bullet collision filter to avoid player
+            bullet.body.collisionFilter.group = -1;
+            bullet.isBullet = true;
+            this.bulletGroup.push(bullet);
 
-            // --- Reload logic ---
+            const bulletSpeed = 30;
+            bullet.setVelocity(Math.cos(angle) * bulletSpeed, Math.sin(angle) * bulletSpeed);
+            bullet.setRotation(angle);
+
             if (this.ammo <= 0) {
               this.reloading = true;
-              this.playerReload = this.physics.add.sprite(this.player.x, this.player.y, 'player-reload')
-              this.playerReload.setScale(0.5)
-              this.player.destroy()
-              this.time.delayedCall(1500, () => { // 1.5s reload time
+              this.isFiringBlocked = true;
+              this.firingInterval.remove();
+              this.firingInterval = null;
+              // Swap player texture to reload
+              this.player.setTexture('player-reload');
+              this.isReloadingTexture = true;
+              this.time.delayedCall(3000, () => {
                 this.ammo = 15;
                 this.reloading = false;
-                this.player = this.physics.add.sprite(this.playerReload.x, this.playerReload.y, 'player')
-                this.player.setScale(0.5)
-                this.playerReload.destroy()
+                this.player.setTexture('player');
+                this.isReloadingTexture = false;
+                this.isFiringBlocked = false;
+                // If pointer is still down, resume firing
+                if (this.input.activePointer.isDown) {
+                  this.input.emit('pointerdown', this.input.activePointer);
+                }
               });
             }
           }
@@ -149,8 +191,8 @@ class GameScene extends Phaser.Scene {
         });
         this.pointerUpListenerAdded = true;
       }
-    })
-    
+    });
+
   }
 
   /**
@@ -159,72 +201,45 @@ class GameScene extends Phaser.Scene {
    * @param {number} time - The current time.
    * @param {number} delta - The delta time in ms since the last frame.
    */
-  update (time, delta) {
+  update(time, delta) {
 
-    const pointer = this.input.activePointer
-    const dx = pointer.x - this.player.x
-    const dy = pointer.y - this.player.y
-    const angle = Math.atan2(dy, dx)
+    const pointer = this.input.activePointer;
+    // Only rotate player to face pointer, do not move player toward pointer
+    const dx = pointer.x - this.player.x;
+    const dy = pointer.y - this.player.y;
+    const angle = Math.atan2(dy, dx);
+    this.player.setRotation(angle);
 
-    this.player.rotation = angle
-    if (this.playerReload) this.playerReload.rotation = angle
+    const keyUpObj = this.input.keyboard.addKey('W');
+    const keyLeftObj = this.input.keyboard.addKey('A');
+    const keyRightObj = this.input.keyboard.addKey('D');
+    const keyDownObj = this.input.keyboard.addKey('S');
 
-    const keyUpObj = this.input.keyboard.addKey('W')
-    const keyLeftObj = this.input.keyboard.addKey('A')
-    const keyRightObj = this.input.keyboard.addKey('D')
-    const keyDownObj = this.input.keyboard.addKey('S')
-    const keyUpgradeObj = this.input.keyboard.addKey('P')
-
+    let vx = 0, vy = 0;
     if (keyLeftObj.isDown === true) {
-      this.player.x -= 15
-      if (this.player.x < 0) this.player.x = 0
-      if (this.playerReload) {
-        this.playerReload.x -= 15
-        if (this.playerReload.x < 0) this.playerReload.x = 0
-      }
+      vx -= 15;
     }
-
     if (keyRightObj.isDown === true) {
-      this.player.x += 15
-      if (this.player.x > 1920) this.player.x = 1920
-      if (this.playerReload) {
-        this.playerReload.x += 15
-        if (this.playerReload.x > 1920) this.playerReload.x = 1920
-      }
+      vx += 15;
     }
-
     if (keyUpObj.isDown === true) {
-      this.player.y -= 15
-      if (this.player.y < 0) this.player.y = 0
-      if (this.playerReload) {
-        this.playerReload.y -= 15
-        if (this.playerReload.y < 0) this.playerReload.y = 0
-      }
+      vy -= 15;
     }
-
     if (keyDownObj.isDown === true) {
-      this.player.y += 15
-      if (this.player.y > 1080) this.player.y = 1080;
-      if (this.playerReload) {
-        this.playerReload.y += 15;
-        if (this.playerReload.y > 1080) this.playerReload.y = 1080;
-      }
+      vy += 15;
     }
+    this.player.setVelocity(vx, vy);
 
-    if (keyUpgradeObj.isDown === true) {
-      this.scene.switch('upgradeScene')
-    }
-
-    this.enemyGroup.children.each(function (enemy) {
-      const dx = this.player.x - enemy.x
-      const dy = this.player.y - enemy.y
-      const angle = Math.atan2(dy, dx)
-      enemy.rotation = angle
-      enemy.body.setVelocity(Math.cos(angle) * 200, Math.sin(angle) * 200)
-    }, this)
+    this.enemyGroup.forEach((enemy) => {
+      const dx = this.player.x - enemy.x;
+      const dy = this.player.y - enemy.y;
+      const angle = Math.atan2(dy, dx);
+      enemy.setRotation(angle);
+      enemy.setVelocity(Math.cos(angle) * 2, Math.sin(angle) * 2);
+    });
 
   }
-  
+
 }
 
 

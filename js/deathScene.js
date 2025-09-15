@@ -14,13 +14,11 @@ class DeathScene extends Phaser.Scene {
    * This method is the constructor.
    */
   constructor() {
-    super({ key: 'deathScene' })
-
-    this.gameOverTextStyle = { font: '80px Courier New', fill: '#ff0000', align: 'center' }
-
-    this.quoteNumber = 0
-    this.quoteText = null
-    this.deathMessage = null
+    super({ key: 'deathScene' });
+    this.gameOverTextStyle = { font: '80px Courier New', fill: '#ff0000', align: 'center' };
+    this.quoteNumber = 0;
+    this.quoteText = null;
+    this.deathMessage = null;
   }
 
   /**
@@ -47,12 +45,12 @@ class DeathScene extends Phaser.Scene {
    * @param {object} data Any data passed via ScenePlugin.add() or ScenePlugin.start().
    */
   create(data) {
-this.deathMessage = this.add.text(1920 / 2, 1080 / 2, 'Game Over', this.gameOverTextStyle)
-  .setOrigin(0.5)
-  .setInteractive()
-  .on('pointerdown', () => {
-    window.location.reload()
-  })
+    this.deathMessage = this.add.text(1920 / 2, 1080 / 2, 'Game Over', this.gameOverTextStyle)
+      .setOrigin(0.5)
+      .setInteractive()
+      .on('pointerdown', () => {
+        window.location.reload();
+      });
   }
 
   /**

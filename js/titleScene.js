@@ -14,10 +14,9 @@ class TitleScene extends Phaser.Scene {
    * This method is the constructor.
    */
   constructor() {
-    super({ key: 'titleScene' })
-
-    this.titleSceneBackgroundImage = null
-    this.startButton = null
+    super({ key: 'titleScene' });
+    this.titleSceneBackgroundImage = null;
+    this.startButton = null;
   }
 
   /**

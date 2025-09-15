@@ -11,14 +11,12 @@ import SplashScene from './splashScene.js'
 import TitleScene from './titleScene.js'
 import GameScene from './gameScene.js'
 import DeathScene from './deathScene.js'
-import UpgradeScene from './upgradeScene.js'
 
 // create the new scenes
 const splashScene = new SplashScene()
 const titleScene = new TitleScene()
 const gameScene = new GameScene()
 const deathScene = new DeathScene()
-const upgradeScene = new UpgradeScene()
 
 /**
  * Start Phaser Game.
@@ -28,31 +26,25 @@ const config = {
   width: 1920,
   height: 1080,
   physics: {
-    default: 'arcade',
-    arcade: {
-      debug: true
+    default: 'matter',
+    matter: {
+      debug: true,
+      gravity: { y: 0 }
     }
   },
-  // set background color
   backgroundColor: 0x5f6e7a,
   scale: {
     mode: Phaser.Scale.FIT,
-    // we place it in the middle of the page.
     autoCenter: Phaser.Scale.CENTER_BOTH
   }
-}
+};
 
-const game = new Phaser.Game(config)
-// console.log(game)
+const game = new Phaser.Game(config);
 
-// load scenes
-// Note: remember any "key" is global and CAN NOT be reused!
-game.scene.add('splashScene', splashScene)
-game.scene.add('titleScene', titleScene)
-game.scene.add('gameScene', gameScene)
-game.scene.add('deathScene', deathScene)
-game.scene.add('upgradeScene', upgradeScene)
-// start the splash scene
+game.scene.add('splashScene', splashScene);
+game.scene.add('titleScene', titleScene);
+game.scene.add('gameScene', gameScene);
+game.scene.add('deathScene', deathScene);
 
-// the start scene
-game.scene.start('splashScene')
+
+game.scene.start('splashScene');

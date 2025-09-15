@@ -32,3 +32,20 @@ Patched a glitch where if you move first before reloading once, the game freezes
 Discovered hitbox glitch with the player, as it doesn't follow the player rotation.
 This is being fixed, but might just become a FEATURE!!!!! (yea idk)
 
+Ver. 1.4.0
+Reworked hitbox. This one bug needed so much to fix I count it as a minor update.
+Changed coding physics: Arcade Physics -> Matter Physics
+This change was required to fix the hitbox.
+If updates aren't happening very quickly, it is because of infamiliarity with Matter. Sorry guys.
+
+Ver. 1.4.1
+Fixed collision and spawning. Bug caused spawning to be in the corners. Collision just didn't happen.
+Death still doesn't happen. Working on it.
+Might add recoil to the game. (fixed as an upgradeable part)
+⬆️ Buffed Accuracy: Bullets will not spray anymore until upgrades are made.
+⬇️⬇️ Nerfed Reload Speed (for now): 1.5 -> 3
+
+Starting to rework upgrade UI. It will soon be built in with keybinds to prevent taking breaks in the game (unless I add a pause function ofc)
+
+
+MORE TO COME SOON!

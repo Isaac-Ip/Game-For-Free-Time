@@ -15,16 +15,14 @@ class GameScene extends Phaser.Scene {
     const enemyXLocation = Math.floor(Math.random() * 1920) + 1;
     let enemyXVelocity = Math.floor(Math.random() * 5) + 1; // Lower velocity for Matter.js
     enemyXVelocity *= Math.round(Math.random()) ? 1 : -1;
-    const anEnemy = this.matter.add.sprite(enemyXLocation, 100, "enemy");
-    anEnemy.setTexture('enemy');
-    anEnemy.setScale(0.5);
-    anEnemy.setOrigin(0.5);
-    anEnemy.setBody({ type: 'rectangle', width: anEnemy.width * 0.5, height: anEnemy.height * 0.5 });
-    anEnemy.setVelocity(enemyXVelocity, 2); // Set initial velocity using Matter.js
-    anEnemy.setIgnoreGravity(true); // If you want enemies to move only by velocity
-    anEnemy.isEnemy = true;
-    anEnemy.hp = 5; // Add HP property
-    this.enemyGroup.push(anEnemy);
+  const anEnemy = this.matter.add.sprite(enemyXLocation, 100, "enemy");
+  anEnemy.setScale(0.5);
+  anEnemy.setBody({ type: 'rectangle', width: anEnemy.width * 0.5, height: anEnemy.height * 0.5 });
+  anEnemy.setVelocity(enemyXVelocity, 2); // Set initial velocity using Matter.js
+  anEnemy.setIgnoreGravity(true); // If you want enemies to move only by velocity
+  anEnemy.isEnemy = true;
+  anEnemy.hp = 5; // Add HP property
+  this.enemyGroup.push(anEnemy);
   }
   /**
    * This method is the constructor.

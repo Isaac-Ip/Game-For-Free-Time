@@ -10,19 +10,20 @@
  * This class is the Game Scene.
  */
 class GameScene extends Phaser.Scene {
+  bolts = 0;
   createEnemy() {
     // Spawn enemy at a random position within the game bounds, not at the player's position
     const enemyXLocation = Math.floor(Math.random() * 1920) + 1;
     let enemyXVelocity = Math.floor(Math.random() * 5) + 1; // Lower velocity for Matter.js
     enemyXVelocity *= Math.round(Math.random()) ? 1 : -1;
-  const anEnemy = this.matter.add.sprite(enemyXLocation, 100, "enemy");
-  anEnemy.setScale(0.5);
-  anEnemy.setBody({ type: 'rectangle', width: anEnemy.width * 0.5, height: anEnemy.height * 0.5 });
-  anEnemy.setVelocity(enemyXVelocity, 2); // Set initial velocity using Matter.js
-  anEnemy.setIgnoreGravity(true); // If you want enemies to move only by velocity
-  anEnemy.isEnemy = true;
-  anEnemy.hp = 5; // Add HP property
-  this.enemyGroup.push(anEnemy);
+    const anEnemy = this.matter.add.sprite(enemyXLocation, 100, "enemy");
+    anEnemy.setScale(0.5);
+    anEnemy.setBody({ type: 'rectangle', width: anEnemy.width * 0.5, height: anEnemy.height * 0.5 });
+    anEnemy.setVelocity(enemyXVelocity, 2); // Set initial velocity using Matter.js
+    anEnemy.setIgnoreGravity(true); // If you want enemies to move only by velocity
+    anEnemy.isEnemy = true;
+    anEnemy.hp = 5; // Add HP property
+    this.enemyGroup.push(anEnemy);
   }
   /**
    * This method is the constructor.
@@ -56,6 +57,7 @@ class GameScene extends Phaser.Scene {
     this.reloadingAmmo = 6;
     this.firerate = 100;
     this.reloadTime = 3000;
+    this.bolts = 0;
   }
 
   /**
@@ -89,12 +91,31 @@ class GameScene extends Phaser.Scene {
     this.background.y = 1080 / 2;
     console.log('Background sprite created:', this.background);
 
+    // Display bolts count in top left
+    this.boltText = this.add.text(32, 32, '', {
+      font: '64px Arial', fill: '#fff', align: 'left'
+    }).setOrigin(0, 0);
+    this.updateBoltText = () => {
+      this.boltText.setText('Bolts: ' + this.bolts);
+    };
+
+    // Display player HP in bottom left
+    this.hpText = this.add.text(32, 1080 - 64, '', {
+      font: '64px Arial', fill: '#fff', align: 'left'
+    }).setOrigin(0, 0);
+    this.updateHpText = () => {
+      this.hpText.setText('HP: ' + (this.player && typeof this.player.hp !== 'undefined' ? this.player.hp : 0));
+    };
+
     this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'player');
     this.player.setScale(0.5);
     this.player.setOrigin(0.5);
     this.player.setBody({ type: 'rectangle', width: this.player.width * 0.5, height: this.player.height * 0.5 });
+    this.player.hp = 3;
     console.log('Player sprite created:', this.player);
     this.isReloadingTexture = false;
+
+    this.updateHpText();
 
     this.bulletGroup = [];
     this.enemyGroup = [];
@@ -125,9 +146,20 @@ class GameScene extends Phaser.Scene {
             const enemyPos = { x: enemy.x, y: enemy.y };
             this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
             enemy.destroy();
+            // Drop bolts
+            const boltsDropped = Phaser.Math.Between(3, 7);
+            this.bolts += boltsDropped;
+            this.updateBoltText();
+            // Optionally show bolt drop effect here
             // Queue bloodstain for next frame
             this.bloodstainQueue.push(enemyPos);
-            this.createEnemy();
+            // 10% chance to spawn 2 enemies
+            if (Phaser.Math.Between(1, 10) === 1) {
+              this.createEnemy();
+              this.createEnemy();
+            } else {
+              this.createEnemy();
+            }
           }
         }
         // Player/enemy collision
@@ -139,7 +171,11 @@ class GameScene extends Phaser.Scene {
           // Queue bloodstain for next frame
           this.bloodstainQueue.push(enemyPos);
           this.createEnemy();
-          // You can add more logic here (e.g., reduce health, end game, etc.)
+          // Player loses 1 HP
+          this.player.hp--;
+          if (this.player.hp <= 0) {
+            this.scene.start('deathScene');
+          }
         }
       });
     });
@@ -233,6 +269,14 @@ class GameScene extends Phaser.Scene {
    * @param {number} delta - The delta time in ms since the last frame.
    */
   update(time, delta) {
+    // Update HP display every frame
+    if (this.hpText) {
+      this.updateHpText();
+    }
+    // Update bolt count display every frame
+    if (this.boltText) {
+      this.updateBoltText();
+    }
     // Only rotate player to face pointer, do not move player toward pointer
     const pointer = this.input.activePointer;
     const dx = pointer.x - this.player.x;

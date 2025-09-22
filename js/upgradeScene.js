@@ -35,9 +35,9 @@ class UpgradeScene extends Phaser.Scene {
 
     // X positions: 1/5, 2/5, 3/5, 4/5 of screen width
     const firerateX = buttonSpacing * 1;
-    const reloadX   = buttonSpacing * 2;
-    const sprayX    = buttonSpacing * 3;
-    const ammoX     = buttonSpacing * 4;
+    const reloadX = buttonSpacing * 2;
+    const sprayX = buttonSpacing * 3;
+    const ammoX = buttonSpacing * 4;
 
     const firerateButton = this.add.image(firerateX, buttonY, 'upgrade').setInteractive().setScale(buttonScale);
     this.add.text(firerateX, buttonY + labelOffset, 'Upgrade Firerate', {

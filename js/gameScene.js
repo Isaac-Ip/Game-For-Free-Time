@@ -16,11 +16,14 @@ class GameScene extends Phaser.Scene {
     let enemyXVelocity = Math.floor(Math.random() * 5) + 1; // Lower velocity for Matter.js
     enemyXVelocity *= Math.round(Math.random()) ? 1 : -1;
     const anEnemy = this.matter.add.sprite(enemyXLocation, 100, "enemy");
+    anEnemy.setTexture('enemy');
     anEnemy.setScale(0.5);
+    anEnemy.setOrigin(0.5);
     anEnemy.setBody({ type: 'rectangle', width: anEnemy.width * 0.5, height: anEnemy.height * 0.5 });
     anEnemy.setVelocity(enemyXVelocity, 2); // Set initial velocity using Matter.js
     anEnemy.setIgnoreGravity(true); // If you want enemies to move only by velocity
     anEnemy.isEnemy = true;
+    anEnemy.hp = 5; // Add HP property
     this.enemyGroup.push(anEnemy);
   }
   /**
@@ -33,10 +36,12 @@ class GameScene extends Phaser.Scene {
     this.player = null;
     this.playerReload = null;
     this.enemy = null;
+    this.enemyHurt = null;
     this.bullet = null;
-    this.ammo = 15;
     this.bulletGroup = [];
     this.enemyGroup = [];
+    this.bloodstain = null;
+    this.bloodstainQueue = [];
   }
 
   /**
@@ -47,6 +52,12 @@ class GameScene extends Phaser.Scene {
    */
   init(data) {
     this.cameras.main.setBackgroundColor('#d06a16ff')
+    this.bulletSprayLeft = -10;
+    this.bulletSprayRight = 10;
+    this.ammo = 6;
+    this.reloadingAmmo = 6;
+    this.firerate = 100;
+    this.reloadTime = 3000;
   }
 
   /**
@@ -54,14 +65,17 @@ class GameScene extends Phaser.Scene {
    * Use it to load assets.
    */
   preload() {
-    console.log('Game Scene')
-
-    // images
+    console.log('Game Scene preload')
     this.load.image('gameSceneBackground', './assets/gameplay-scene.png')
     this.load.image('player', './assets/player.png')
     this.load.image('player-reload', './assets/player-reload.png')
     this.load.image('enemy', './assets/zombie.png')
+    this.load.image('enemy-hurt', './assets/zombie-hurt.png')
     this.load.image('bullet', './assets/bullet.png')
+    this.load.image('bloodstain', './assets/bloodstain.png')
+    this.load.on('loaderror', (file) => {
+      console.error('Failed to load asset:', file.src);
+    });
   }
 
   /**
@@ -70,19 +84,24 @@ class GameScene extends Phaser.Scene {
    * @param {object} data Any data passed via ScenePlugin.add() or ScenePlugin.start().
    */
   create(data) {
+    console.log('Game Scene create')
+    this.cameras.main.setBackgroundColor('#222');
     this.background = this.add.sprite(0, 0, 'gameSceneBackground');
     this.background.x = 1920 / 2;
     this.background.y = 1080 / 2;
+    console.log('Background sprite created:', this.background);
 
     this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'player');
     this.player.setScale(0.5);
     this.player.setOrigin(0.5);
     this.player.setBody({ type: 'rectangle', width: this.player.width * 0.5, height: this.player.height * 0.5 });
+    console.log('Player sprite created:', this.player);
     this.isReloadingTexture = false;
 
     this.bulletGroup = [];
     this.enemyGroup = [];
     this.createEnemy();
+    console.log('Enemy group after first spawn:', this.enemyGroup);
 
     // Matter.js collision event
     this.matter.world.on('collisionstart', (event) => {
@@ -94,24 +113,38 @@ class GameScene extends Phaser.Scene {
         if ((objA.isBullet && objB.isEnemy) || (objB.isBullet && objA.isEnemy)) {
           const bullet = objA.isBullet ? objA : objB;
           const enemy = objA.isEnemy ? objA : objB;
+          // Damage enemy
+          enemy.hp = (enemy.hp || 1) - 1;
           this.bulletGroup = this.bulletGroup.filter(b => b !== bullet);
-          this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
           bullet.destroy();
-          enemy.destroy();
-          this.createEnemy();
+          if (enemy.hp === 2) {
+            enemy.setTexture('enemy-hurt');
+            enemy.setScale(0.5);
+            enemy.setOrigin(0.5);
+          }
+          if (enemy.hp <= 0) {
+            // Capture position BEFORE destroy
+            const enemyPos = { x: enemy.x, y: enemy.y };
+            this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
+            enemy.destroy();
+            // Queue bloodstain for next frame
+            this.bloodstainQueue.push(enemyPos);
+            this.createEnemy();
+          }
         }
         // Player/enemy collision
         if ((objA === this.player && objB.isEnemy) || (objB === this.player && objA.isEnemy)) {
           const enemy = objA.isEnemy ? objA : objB;
+          const enemyPos = { x: enemy.x, y: enemy.y };
           this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
           enemy.destroy();
+          // Queue bloodstain for next frame
+          this.bloodstainQueue.push(enemyPos);
           this.createEnemy();
           // You can add more logic here (e.g., reduce health, end game, etc.)
         }
       });
     });
-
-    const fireRate = 90; // Milliseconds between shots (e.g., 500ms for 2 shots per second)
 
     // Only block firing, not all input, during reload
     this.isFiringBlocked = false;
@@ -120,7 +153,7 @@ class GameScene extends Phaser.Scene {
       // --- Start continuous firing ---
       if (!this.firingInterval && !this.reloading) {
         this.firingInterval = this.time.addEvent({
-          delay: fireRate,
+          delay: this.firerate,
           loop: true,
           callback: () => {
             if (!this.input.activePointer.isDown) {
@@ -131,16 +164,16 @@ class GameScene extends Phaser.Scene {
             if (this.reloading) {
               return;
             }
-            if (!this.ammo) this.ammo = 15;
+            if (!this.ammo) this.ammo = this.reloadingAmmo;
             this.ammo--;
             const dx = this.input.activePointer.x - this.player.x;
             const dy = this.input.activePointer.y - this.player.y;
             const baseAngle = Math.atan2(dy, dx);
-            const spray = Phaser.Math.DegToRad(Phaser.Math.Between(-2, 2));
+            const spray = Phaser.Math.DegToRad(Phaser.Math.Between(this.bulletSprayLeft, this.bulletSprayRight));
             const angle = baseAngle + spray;
 
             // Spawn bullet slightly in front of player
-            const bulletOffset = 95; // farther in front of player
+            const bulletOffset = 90; // farther in front of player
             const bulletX = this.player.x + Math.cos(angle) * bulletOffset;
             const bulletY = this.player.y + Math.sin(angle) * bulletOffset;
             const bullet = this.matter.add.sprite(bulletX, bulletY, 'bullet');
@@ -164,8 +197,8 @@ class GameScene extends Phaser.Scene {
               // Swap player texture to reload
               this.player.setTexture('player-reload');
               this.isReloadingTexture = true;
-              this.time.delayedCall(3000, () => {
-                this.ammo = 15;
+              this.time.delayedCall(this.reloadTime, () => {
+                this.ammo = this.reloadingAmmo;
                 this.reloading = false;
                 this.player.setTexture('player');
                 this.isReloadingTexture = false;
@@ -202,9 +235,8 @@ class GameScene extends Phaser.Scene {
    * @param {number} delta - The delta time in ms since the last frame.
    */
   update(time, delta) {
-
-    const pointer = this.input.activePointer;
     // Only rotate player to face pointer, do not move player toward pointer
+    const pointer = this.input.activePointer;
     const dx = pointer.x - this.player.x;
     const dy = pointer.y - this.player.y;
     const angle = Math.atan2(dy, dx);
@@ -214,6 +246,7 @@ class GameScene extends Phaser.Scene {
     const keyLeftObj = this.input.keyboard.addKey('A');
     const keyRightObj = this.input.keyboard.addKey('D');
     const keyDownObj = this.input.keyboard.addKey('S');
+    const keyUpgradeObj = this.input.keyboard.addKey('P');
 
     let vx = 0, vy = 0;
     if (keyLeftObj.isDown === true) {
@@ -230,7 +263,10 @@ class GameScene extends Phaser.Scene {
     }
     this.player.setVelocity(vx, vy);
 
+    this.enemyGroup = this.enemyGroup.filter(e => e && !e._destroyed);
+    this.bulletGroup = this.bulletGroup.filter(b => b && !b._destroyed);
     this.enemyGroup.forEach((enemy) => {
+      if (!enemy || enemy._destroyed) return;
       const dx = this.player.x - enemy.x;
       const dy = this.player.y - enemy.y;
       const angle = Math.atan2(dy, dx);
@@ -238,6 +274,24 @@ class GameScene extends Phaser.Scene {
       enemy.setVelocity(Math.cos(angle) * 2, Math.sin(angle) * 2);
     });
 
+    if (keyUpgradeObj.isDown === true) {
+      this.scene.switch('upgradeScene');
+    }
+
+    // Show bloodstains queued from collision event
+    if (this.bloodstainQueue.length > 0) {
+      this.bloodstainQueue.forEach(pos => {
+        const blood = this.add.sprite(pos.x, pos.y, 'bloodstain');
+        blood.setAlpha(1);
+        this.tweens.add({
+          targets: blood,
+          alpha: 0,
+          duration: 2000,
+          onComplete: () => blood.destroy()
+        });
+      });
+      this.bloodstainQueue = [];
+    }
   }
 
 }

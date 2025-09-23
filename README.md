@@ -48,5 +48,20 @@ Might add recoil to the game. (fixed as an upgradeable part)<br>
 
 Starting to rework upgrade UI. It will soon be built in with keybinds to prevent taking breaks in the game (unless I add a pause function ofc)
 
+Ver. 1.5.0<br>
+Changed my mind, upgrade UI is now an entirely different screen.<br>
+Players now have 3 hp, each enemy deals 1 hp.<br>
+Enemies now have 5 hp, each bullet dealing 1 hp.<br>
+Enemies now have a 'damaged' skin.<br>
+Enemies drop 3-7 bolts when killed. Bolts can be used to upgrade.<br>
+Enemies now have a 10% chance to two enemies on death.<br>
+Upgrades cost 50 bolts, but have a 50% chance to work (chance of upgrade actually happening).
+
+4 new upgrades have been added.<br>
+FIRERATE reduces the time of each bullet being shot: 0.1s -> 0.08s -> 0.6s -> 0.04s -> 0.02s<br>
+RELOAD reduces the time for reloading the magasines: 3s -> 2.25s -> 1.5s -> 0.75s -> 0.25s<br>
+SPRAY reduces the spray range of the bullets. 20 degree spray ->>>> 0 degree spray<br>
+AMMO increases the amount of bullets that can be shot before reloads: 6 -> 15 -> 30 -> 100 -> 1000
 
 MORE TO COME SOON!
+If you want something fixed or new added, fill this out: [LINK](https://docs.google.com/forms/d/e/1FAIpQLSdBAkZc1rAzE6f18CH9MnjB5y6Eiiyr9PpKyLDDSJMIWIeGSA/viewform?usp=header/)

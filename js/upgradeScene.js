@@ -47,7 +47,7 @@ class UpgradeScene extends Phaser.Scene {
     const screenWidth = 1920;
     const buttonY = 1080 / 2 + 100;
     const labelOffset = 70;
-    const buttonSpacing = screenWidth / 5;
+    const buttonSpacing = screenWidth / 6;
     const buttonScale = 0.5;
 
     // X positions: 1/5, 2/5, 3/5, 4/5 of screen width
@@ -55,6 +55,7 @@ class UpgradeScene extends Phaser.Scene {
     const reloadX = buttonSpacing * 2;
     const sprayX = buttonSpacing * 3;
     const ammoX = buttonSpacing * 4;
+    const critX = buttonSpacing * 5;
 
     const firerateButton = this.add.image(firerateX, buttonY, 'upgrade').setInteractive().setScale(buttonScale);
     this.add.text(firerateX, buttonY + labelOffset, 'Upgrade Firerate', {
@@ -73,6 +74,11 @@ class UpgradeScene extends Phaser.Scene {
 
     const ammoButton = this.add.image(ammoX, buttonY, 'upgrade').setInteractive().setScale(buttonScale);
     this.add.text(ammoX, buttonY + labelOffset, 'Upgrade Ammo', {
+      font: '32px Arial', fill: '#fff', align: 'center'
+    }).setOrigin(0.5);
+
+    const critButton = this.add.image(critX, buttonY, 'upgrade').setInteractive().setScale(buttonScale);
+    this.add.text(critX, buttonY + labelOffset, 'Upgrade Crit', {
       font: '32px Arial', fill: '#fff', align: 'center'
     }).setOrigin(0.5);
 
@@ -109,6 +115,7 @@ class UpgradeScene extends Phaser.Scene {
           });
         } else {
           const failed = this.add.image(sprayX, buttonY, 'failedParticle').setScale(0.5);
+          gameScene.bolts -= 50;
           this.tweens.add({
             targets: failed,
             y: buttonY - 80,
@@ -150,6 +157,7 @@ class UpgradeScene extends Phaser.Scene {
       if (gameScene.reloadingAmmo === 6 || gameScene.reloadingAmmo === 15 || gameScene.reloadingAmmo === 30 || gameScene.reloadingAmmo === 100) {
         this.chances = Phaser.Math.Between(1, 2);
         if (this.chances === 1) {
+
           if (gameScene.reloadingAmmo === 6) {
             gameScene.reloadingAmmo = 15;
             gameScene.ammo = 15;
@@ -175,6 +183,7 @@ class UpgradeScene extends Phaser.Scene {
             onComplete: () => successful.destroy()
           });
         } else {
+          gameScene.bolts -= 50;
           const failed = this.add.image(ammoX, buttonY, 'failedParticle').setScale(0.5);
           this.tweens.add({
             targets: failed,
@@ -240,6 +249,7 @@ class UpgradeScene extends Phaser.Scene {
           });
         } else {
           const failed = this.add.image(reloadX, buttonY, 'failedParticle').setScale(0.5);
+          gameScene.bolts -= 50;
           this.tweens.add({
             targets: failed,
             y: buttonY - 80,
@@ -304,6 +314,7 @@ class UpgradeScene extends Phaser.Scene {
           });
         } else {
           const failed = this.add.image(firerateX, buttonY, 'failedParticle').setScale(0.5);
+          gameScene.bolts -= 50;
           this.tweens.add({
             targets: failed,
             y: buttonY - 80,
@@ -316,6 +327,71 @@ class UpgradeScene extends Phaser.Scene {
       } else {
         // Show maxed particle effect
         const maxed = this.add.image(firerateX, buttonY, 'maxedParticle').setScale(0.5);
+        this.tweens.add({
+          targets: maxed,
+          y: buttonY - 80,
+          alpha: 0,
+          duration: 1200,
+          ease: 'Cubic.easeOut',
+          onComplete: () => maxed.destroy()
+        });
+      }
+    });
+
+    critButton.on('pointerdown', () => {
+      // Always get gameScene reference first
+      const gameScene = this.scene.get('gameScene');
+      if (gameScene.bolts < 50) {
+        const unaffordable = this.add.image(critX, buttonY, 'unaffordableParticle').setScale(0.5);
+        this.tweens.add({
+          targets: unaffordable,
+          y: buttonY - 80,
+          alpha: 0,
+          duration: 1200,
+          ease: 'Cubic.easeOut',
+          onComplete: () => unaffordable.destroy()
+        });
+        return;
+      }
+      // Access GameScene and increase crit chance
+      if (gameScene.crit === 5 || gameScene.crit === 10 || gameScene.crit === 15 || gameScene.crit === 20) {
+        this.chances = Phaser.Math.Between(1, 2);
+        if (this.chances === 1) {
+          if (gameScene.crit === 5) {
+            gameScene.crit = 10;
+          } else if (gameScene.crit === 10) {
+            gameScene.crit = 15;
+          } else if (gameScene.crit === 15) {
+            gameScene.crit = 20;
+          } else if (gameScene.crit === 20) {
+            gameScene.crit = 30;
+          }
+          gameScene.bolts -= 50;
+          this.updateBoltText();
+          const successful = this.add.image(critX, buttonY, 'successParticle').setScale(0.5);
+          this.tweens.add({
+            targets: successful,
+            y: buttonY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => successful.destroy()
+          });
+        } else {
+          const failed = this.add.image(critX, buttonY, 'failedParticle').setScale(0.5);
+          gameScene.bolts -= 50;
+          this.tweens.add({
+            targets: failed,
+            y: buttonY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => failed.destroy()
+          });
+        }
+      } else {
+        // Show maxed particle effect
+        const maxed = this.add.image(critX, buttonY, 'maxedParticle').setScale(0.5);
         this.tweens.add({
           targets: maxed,
           y: buttonY - 80,

@@ -12,17 +12,31 @@
 class GameScene extends Phaser.Scene {
   bolts = 0;
   createEnemy() {
-    // Spawn enemy at a random position within the game bounds, not at the player's position
+    // 20% chance to spawn armored zombie
+    const isArmored = Phaser.Math.Between(1, 100) <= 20;
     const enemyXLocation = Math.floor(Math.random() * 1920) + 1;
-    let enemyXVelocity = Math.floor(Math.random() * 5) + 1; // Lower velocity for Matter.js
+    let enemyXVelocity = Math.floor(Math.random() * 5) + 1;
     enemyXVelocity *= Math.round(Math.random()) ? 1 : -1;
-    const anEnemy = this.matter.add.sprite(enemyXLocation, 100, "enemy");
-    anEnemy.setScale(0.5);
-    anEnemy.setBody({ type: 'rectangle', width: anEnemy.width * 0.5, height: anEnemy.height * 0.5 });
-    anEnemy.setVelocity(enemyXVelocity, 2); // Set initial velocity using Matter.js
-    anEnemy.setIgnoreGravity(true); // If you want enemies to move only by velocity
-    anEnemy.isEnemy = true;
-    anEnemy.hp = 5; // Add HP property
+    let anEnemy;
+    if (isArmored) {
+      anEnemy = this.matter.add.sprite(enemyXLocation, 100, "armored-enemy");
+      anEnemy.setScale(0.55);
+      anEnemy.setBody({ type: 'rectangle', width: anEnemy.width * 0.5, height: anEnemy.height * 0.5 });
+      anEnemy.setVelocity(enemyXVelocity, 2);
+      anEnemy.setIgnoreGravity(true);
+      anEnemy.isEnemy = true;
+      anEnemy.isArmored = true;
+      anEnemy.hp = 15;
+    } else {
+      anEnemy = this.matter.add.sprite(enemyXLocation, 100, "enemy");
+      anEnemy.setScale(0.5);
+      anEnemy.setBody({ type: 'rectangle', width: anEnemy.width * 0.5, height: anEnemy.height * 0.5 });
+      anEnemy.setVelocity(enemyXVelocity, 2);
+      anEnemy.setIgnoreGravity(true);
+      anEnemy.isEnemy = true;
+      anEnemy.isArmored = false;
+      anEnemy.hp = 5;
+    }
     this.enemyGroup.push(anEnemy);
   }
   /**
@@ -36,11 +50,15 @@ class GameScene extends Phaser.Scene {
     this.playerReload = null;
     this.enemy = null;
     this.enemyHurt = null;
+    this.armoredEnemy = null;
+    this.armoredEnemyHurt = null;
     this.bullet = null;
+    this.critBullet = null;
     this.bulletGroup = [];
     this.enemyGroup = [];
     this.bloodstain = null;
     this.bloodstainQueue = [];
+    this.critParticle = null;
   }
 
   /**
@@ -58,6 +76,7 @@ class GameScene extends Phaser.Scene {
     this.firerate = 100;
     this.reloadTime = 3000;
     this.bolts = 0;
+    this.crit = 5;
   }
 
   /**
@@ -66,13 +85,17 @@ class GameScene extends Phaser.Scene {
    */
   preload() {
     console.log('Game Scene preload')
-    this.load.image('gameSceneBackground', './assets/gameplay-scene.png')
+    this.load.image('game-scene-background', './assets/gameplay-scene.png')
     this.load.image('player', './assets/player.png')
     this.load.image('player-reload', './assets/player-reload.png')
     this.load.image('enemy', './assets/zombie.png')
     this.load.image('enemy-hurt', './assets/zombie-hurt.png')
+    this.load.image('armored-enemy-hurt', './assets/armored-zombie-hurt.png')
+    this.load.image('armored-enemy', './assets/armored-zombie.png')
     this.load.image('bullet', './assets/bullet.png')
     this.load.image('bloodstain', './assets/bloodstain.png')
+    this.load.image('crit-particle', './assets/crit-particle.png')
+    this.load.image('crit-bullet', './assets/crit-bullet.png')
     this.load.on('loaderror', (file) => {
       console.error('Failed to load asset:', file.src);
     });
@@ -86,7 +109,7 @@ class GameScene extends Phaser.Scene {
   create(data) {
     console.log('Game Scene create')
     this.cameras.main.setBackgroundColor('#222');
-    this.background = this.add.sprite(0, 0, 'gameSceneBackground');
+    this.background = this.add.sprite(0, 0, 'game-scene-background');
     this.background.x = 1920 / 2;
     this.background.y = 1080 / 2;
     console.log('Background sprite created:', this.background);
@@ -133,13 +156,35 @@ class GameScene extends Phaser.Scene {
           const bullet = objA.isBullet ? objA : objB;
           const enemy = objA.isEnemy ? objA : objB;
           // Damage enemy
-          enemy.hp = (enemy.hp || 1) - 1;
+          if (bullet.isCrit) {
+            enemy.hp = (enemy.hp || 1) - 3;
+            // Show crit particle at enemy position
+            const critParticle = this.add.sprite(enemy.x, enemy.y, 'crit-particle');
+            critParticle.setScale(2);
+            critParticle.setAlpha(1);
+            this.tweens.add({
+              targets: critParticle,
+              alpha: 0,
+              duration: 500,
+              onComplete: () => critParticle.destroy()
+            });
+          } else {
+            enemy.hp = (enemy.hp || 1) - 1;
+          }
           this.bulletGroup = this.bulletGroup.filter(b => b !== bullet);
           bullet.destroy();
-          if (enemy.hp === 2) {
-            enemy.setTexture('enemy-hurt');
-            enemy.setScale(0.5);
-            enemy.setOrigin(0.5);
+          if (enemy.isArmored) {
+            if (enemy.hp === 5) {
+              enemy.setTexture('armored-enemy-hurt');
+              enemy.setScale(0.55); // Match normal zombie size
+              enemy.setOrigin(0.5);
+            }
+          } else {
+            if (enemy.hp === 2) {
+              enemy.setTexture('enemy-hurt');
+              enemy.setScale(0.5);
+              enemy.setOrigin(0.5);
+            }
           }
           if (enemy.hp <= 0) {
             // Capture position BEFORE destroy
@@ -147,7 +192,12 @@ class GameScene extends Phaser.Scene {
             this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
             enemy.destroy();
             // Drop bolts
-            const boltsDropped = Phaser.Math.Between(3, 7);
+            let boltsDropped;
+            if (enemy.isArmored) {
+              boltsDropped = Phaser.Math.Between(11, 14);
+            } else {
+              boltsDropped = Phaser.Math.Between(3, 7);
+            }
             this.bolts += boltsDropped;
             this.updateBoltText();
             // Optionally show bolt drop effect here
@@ -210,13 +260,20 @@ class GameScene extends Phaser.Scene {
             const bulletOffset = 90; // farther in front of player
             const bulletX = this.player.x + Math.cos(angle) * bulletOffset;
             const bulletY = this.player.y + Math.sin(angle) * bulletOffset;
-            const bullet = this.matter.add.sprite(bulletX, bulletY, 'bullet');
+            let bullet, isCrit = false;
+            if (Phaser.Math.Between(1, 100) <= this.crit) {
+              bullet = this.matter.add.sprite(bulletX, bulletY, 'crit-bullet');
+              isCrit = true;
+            } else {
+              bullet = this.matter.add.sprite(bulletX, bulletY, 'bullet');
+            }
             bullet.setScale(0.5);
             bullet.setBody({ type: 'rectangle', width: bullet.width * 0.5, height: bullet.height * 0.5 });
             bullet.setIgnoreGravity(true);
             // Set bullet collision filter to avoid player
             bullet.body.collisionFilter.group = -1;
             bullet.isBullet = true;
+            bullet.isCrit = isCrit;
             this.bulletGroup.push(bullet);
 
             const bulletSpeed = 30;
@@ -313,7 +370,11 @@ class GameScene extends Phaser.Scene {
       const dy = this.player.y - enemy.y;
       const angle = Math.atan2(dy, dx);
       enemy.setRotation(angle);
-      enemy.setVelocity(Math.cos(angle) * 2, Math.sin(angle) * 2);
+      if (enemy.isArmored) {
+        enemy.setVelocity(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5); // 25% slower
+      } else {
+        enemy.setVelocity(Math.cos(angle) * 2, Math.sin(angle) * 2);
+      }
     });
 
     if (keyUpgradeObj.isDown === true) {

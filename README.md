@@ -50,12 +50,14 @@ Starting to rework upgrade UI. It will soon be built in with keybinds to prevent
 
 Ver. 1.5.0<br>
 Changed my mind, upgrade UI is now an entirely different screen.<br>
+Upgrades cost 50 bolts, but have a 50% chance to work (chance of upgrade actually happening).<br>
 Players now have 3 hp, each enemy deals 1 hp.<br>
 Enemies now have 5 hp, each bullet dealing 1 hp.<br>
 Enemies now have a 'damaged' skin.<br>
 Enemies drop 3-7 bolts when killed. Bolts can be used to upgrade.<br>
 Enemies now have a 10% chance to two enemies on death.<br>
-Upgrades cost 50 bolts, but have a 50% chance to work (chance of upgrade actually happening).
+This might not seem like much, but over time, it adds up to a lot.
+
 
 4 new upgrades have been added.<br>
 FIRERATE reduces the time of each bullet being shot: 0.1s -> 0.08s -> 0.6s -> 0.04s -> 0.02s<br>
@@ -63,5 +65,11 @@ RELOAD reduces the time for reloading the magasines: 3s -> 2.25s -> 1.5s -> 0.75
 SPRAY reduces the spray range of the bullets. 20 degree spray ->>>> 0 degree spray<br>
 AMMO increases the amount of bullets that can be shot before reloads: 6 -> 15 -> 30 -> 100 -> 1000
 
-MORE TO COME SOON!
+Ver.1.6.0<br>
+Added a new upgrade, critical hits and armored enemies.<br>
+CRIT increases crit chance: 5% -> 10% -> 15% -> 20% -> 30%<br>
+Red bullets will deal 3 crit damage. If you don't know if it hit, then try to find the crit particles.
+Enemies now have a 20% chance of spawning as a armored enemy, having 15 hp and drops 8-14 bolts.
+
+MORE TO COME SOON!<br>
 If you want something fixed or new added, fill this out: [LINK](https://docs.google.com/forms/d/e/1FAIpQLSdBAkZc1rAzE6f18CH9MnjB5y6Eiiyr9PpKyLDDSJMIWIeGSA/viewform?usp=header/)

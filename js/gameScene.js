@@ -27,6 +27,7 @@ class GameScene extends Phaser.Scene {
       anEnemy.isEnemy = true;
       anEnemy.isArmored = true;
       anEnemy.hp = 15;
+      anEnemy.body.collisionFilter.category = 0x0002; // Enemy category
     } else {
       anEnemy = this.matter.add.sprite(enemyXLocation, 100, "enemy");
       anEnemy.setScale(0.5);
@@ -36,6 +37,7 @@ class GameScene extends Phaser.Scene {
       anEnemy.isEnemy = true;
       anEnemy.isArmored = false;
       anEnemy.hp = 5;
+      anEnemy.body.collisionFilter.category = 0x0002; // Enemy category
     }
     this.enemyGroup.push(anEnemy);
   }
@@ -58,7 +60,13 @@ class GameScene extends Phaser.Scene {
     this.enemyGroup = [];
     this.bloodstain = null;
     this.bloodstainQueue = [];
+    this.droneDmg = 1; // Drone upgrade damage
+    this.droneFirerate = 1000; // ms between shots
     this.critParticle = null;
+    // Brice class: healing and defense upgrades
+    this.briceRegen = 0;
+    this.briceDef = 0;
+    this.lastBriceRegen = 0;
   }
 
   /**
@@ -77,6 +85,10 @@ class GameScene extends Phaser.Scene {
     this.reloadTime = 3000;
     this.bolts = 0;
     this.crit = 5;
+    this.drone = null;
+    this.droneBullet = null;
+    this.droneDmg = 1;
+    this.droneFirerate = 1000;
   }
 
   /**
@@ -96,6 +108,8 @@ class GameScene extends Phaser.Scene {
     this.load.image('bloodstain', './assets/bloodstain.png')
     this.load.image('crit-particle', './assets/crit-particle.png')
     this.load.image('crit-bullet', './assets/crit-bullet.png')
+    this.load.image('drone', './assets/drone.png')
+    this.load.image('drone-bullet', './assets/drone-bullet.png')
     this.load.on('loaderror', (file) => {
       console.error('Failed to load asset:', file.src);
     });
@@ -107,6 +121,14 @@ class GameScene extends Phaser.Scene {
    * @param {object} data Any data passed via ScenePlugin.add() or ScenePlugin.start().
    */
   create(data) {
+    // Determine player class
+    this.playerClass = (data && data.playerClass) ? data.playerClass : 'normal';
+    // Brokie class: mark for double bolts
+    this.isBrokie = (this.playerClass === 'brokie');
+    // Tracker class: mark for homing bullets
+    this.isTracker = (this.playerClass === 'tracker');
+    // Hunter class: mark for double damage
+    this.isHunter = (this.playerClass === 'hunter');
     console.log('Game Scene create')
     this.cameras.main.setBackgroundColor('#222');
     this.background = this.add.sprite(0, 0, 'game-scene-background');
@@ -130,13 +152,38 @@ class GameScene extends Phaser.Scene {
       this.hpText.setText('HP: ' + (this.player && typeof this.player.hp !== 'undefined' ? this.player.hp : 0));
     };
 
+    // Determine player class
+    this.playerClass = (data && data.playerClass) ? data.playerClass : 'normal';
     this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'player');
-    this.player.setScale(0.5);
-    this.player.setOrigin(0.5);
-    this.player.setBody({ type: 'rectangle', width: this.player.width * 0.5, height: this.player.height * 0.5 });
-    this.player.hp = 3;
+    if (this.playerClass === 'brice') {
+      this.player.setScale(0.55);
+      this.player.setOrigin(0.5);
+      this.player.setBody({ type: 'rectangle', width: this.player.width * 0.55, height: this.player.height * 0.55 });
+      this.player.hp = 200;
+      this.player.isBrice = true;
+    } else {
+      this.player.setScale(0.5);
+      this.player.setOrigin(0.5);
+      this.player.setBody({ type: 'rectangle', width: this.player.width * 0.5, height: this.player.height * 0.5 });
+      this.player.hp = 3;
+    }
     console.log('Player sprite created:', this.player);
     this.isReloadingTexture = false;
+
+    // Frank class: add drones based on droneCount (default 2)
+    if (this.playerClass === 'frank') {
+      this.droneCount = this.droneCount || 2;
+      this.drones = [];
+      for (let i = 0; i < this.droneCount; i++) {
+        const angle = (Math.PI * 2 * i) / this.droneCount;
+        const x = this.player.x + Math.cos(angle) * 100;
+        const y = this.player.y + Math.sin(angle) * 100;
+        const drone = this.add.sprite(x, y, 'drone');
+        drone.setScale(0.4);
+        this.drones.push(drone);
+      }
+      this.droneShootTimers = Array(this.droneCount).fill(0);
+    }
 
     this.updateHpText();
 
@@ -156,8 +203,12 @@ class GameScene extends Phaser.Scene {
           const bullet = objA.isBullet ? objA : objB;
           const enemy = objA.isEnemy ? objA : objB;
           // Damage enemy
-          if (bullet.isCrit) {
-            enemy.hp = (enemy.hp || 1) - 3;
+          if (bullet.isDrone) {
+            enemy.hp = (enemy.hp || 1) - (bullet.droneDmg || 1);
+          } else if (bullet.isCrit) {
+            let critDmg = 3;
+            if (this.isHunter) critDmg = 6;
+            enemy.hp = (enemy.hp || 1) - critDmg;
             // Show crit particle at enemy position
             const critParticle = this.add.sprite(enemy.x, enemy.y, 'crit-particle');
             critParticle.setScale(2);
@@ -169,18 +220,20 @@ class GameScene extends Phaser.Scene {
               onComplete: () => critParticle.destroy()
             });
           } else {
-            enemy.hp = (enemy.hp || 1) - 1;
+            let baseDmg = 1;
+            if (this.isHunter) baseDmg = 2;
+            enemy.hp = (enemy.hp || 1) - baseDmg;
           }
           this.bulletGroup = this.bulletGroup.filter(b => b !== bullet);
           bullet.destroy();
           if (enemy.isArmored) {
-            if (enemy.hp === 5) {
+            if (enemy.hp <= 5) {
               enemy.setTexture('armored-enemy-hurt');
               enemy.setScale(0.55); // Match normal zombie size
               enemy.setOrigin(0.5);
             }
           } else {
-            if (enemy.hp === 2) {
+            if (enemy.hp <= 2) {
               enemy.setTexture('enemy-hurt');
               enemy.setScale(0.5);
               enemy.setOrigin(0.5);
@@ -198,7 +251,11 @@ class GameScene extends Phaser.Scene {
             } else {
               boltsDropped = Phaser.Math.Between(3, 7);
             }
-            this.bolts += boltsDropped;
+            if (this.isBrokie) {
+              this.bolts += boltsDropped * 2;
+            } else {
+              this.bolts += boltsDropped;
+            }
             this.updateBoltText();
             // Optionally show bolt drop effect here
             // Queue bloodstain for next frame
@@ -221,8 +278,15 @@ class GameScene extends Phaser.Scene {
           // Queue bloodstain for next frame
           this.bloodstainQueue.push(enemyPos);
           this.createEnemy();
-          // Player loses 1 HP
-          this.player.hp--;
+          // Player loses HP (Brice defense applies)
+          let dmg = 1;
+          if (this.playerClass === 'brice' && this.briceDef > 0) {
+            dmg = 1 - 0.1 * this.briceDef;
+            dmg = Math.round(dmg * 10) / 10;
+            dmg = Math.max(dmg, 0.5); // never less than 0.5
+          }
+          this.player.hp -= dmg;
+          this.player.hp = Math.round(this.player.hp * 10) / 10;
           if (this.player.hp <= 0) {
             this.scene.start('deathScene');
           }
@@ -257,7 +321,11 @@ class GameScene extends Phaser.Scene {
             const angle = baseAngle + spray;
 
             // Spawn bullet slightly in front of player
-            const bulletOffset = 90; // farther in front of player
+            if (this.playerClass === 'brice') {
+              var bulletOffset = 107; // farther in front of player
+            } else {
+              var bulletOffset = 90; // default offset
+            }
             const bulletX = this.player.x + Math.cos(angle) * bulletOffset;
             const bulletY = this.player.y + Math.sin(angle) * bulletOffset;
             let bullet, isCrit = false;
@@ -274,6 +342,8 @@ class GameScene extends Phaser.Scene {
             bullet.body.collisionFilter.group = -1;
             bullet.isBullet = true;
             bullet.isCrit = isCrit;
+            // Tracker class: mark bullet for homing
+            if (this.isTracker) bullet.isHoming = true;
             this.bulletGroup.push(bullet);
 
             const bulletSpeed = 30;
@@ -326,6 +396,37 @@ class GameScene extends Phaser.Scene {
    * @param {number} delta - The delta time in ms since the last frame.
    */
   update(time, delta) {
+    // Tracker class: smoothly home bullets toward nearest enemy
+    if (this.isTracker && this.bulletGroup && this.enemyGroup) {
+      for (const bullet of this.bulletGroup) {
+        if (!bullet.isHoming) continue;
+        // Find nearest enemy
+        let nearest = null, minDist = Infinity;
+        for (const enemy of this.enemyGroup) {
+          if (!enemy || enemy._destroyed) continue;
+          const dx = enemy.x - bullet.x;
+          const dy = enemy.y - bullet.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < minDist) {
+            minDist = dist;
+            nearest = enemy;
+          }
+        }
+        if (nearest) {
+          const dx = nearest.x - bullet.x;
+          const dy = nearest.y - bullet.y;
+          const angle = Math.atan2(dy, dx);
+          // Smoothly steer toward target
+          const speed = Math.sqrt(bullet.body.velocity.x ** 2 + bullet.body.velocity.y ** 2) || 30;
+          const steerStrength = 0.15; // 0 = no steer, 1 = instant turn
+          const vx = bullet.body.velocity.x * (1 - steerStrength) + Math.cos(angle) * speed * steerStrength;
+          const vy = bullet.body.velocity.y * (1 - steerStrength) + Math.sin(angle) * speed * steerStrength;
+          const newSpeed = Math.sqrt(vx * vx + vy * vy) || 30;
+          bullet.setVelocity((vx / newSpeed) * speed, (vy / newSpeed) * speed);
+          bullet.setRotation(Math.atan2(vy, vx));
+        }
+      }
+    }
     // Update HP display every frame
     if (this.hpText) {
       this.updateHpText();
@@ -348,19 +449,85 @@ class GameScene extends Phaser.Scene {
     const keyUpgradeObj = this.input.keyboard.addKey('P');
 
     let vx = 0, vy = 0;
+    let speed = 15;
+    if (this.playerClass === 'brice') speed = 7;
     if (keyLeftObj.isDown === true) {
-      vx -= 15;
+      vx -= speed;
     }
     if (keyRightObj.isDown === true) {
-      vx += 15;
+      vx += speed;
     }
     if (keyUpObj.isDown === true) {
-      vy -= 15;
+      vy -= speed;
     }
     if (keyDownObj.isDown === true) {
-      vy += 15;
+      vy += speed;
     }
     this.player.setVelocity(vx, vy);
+
+    // Frank class: update drone positions and shooting
+    if (this.playerClass === 'frank' && this.drones) {
+      // If droneCount changed, add/remove drones
+      if (this.drones.length !== this.droneCount) {
+        // Remove old drones
+        this.drones.forEach(d => d.destroy());
+        this.drones = [];
+        for (let i = 0; i < this.droneCount; i++) {
+          const angle = (Math.PI * 2 * i) / this.droneCount;
+          const x = this.player.x + Math.cos(angle) * 100;
+          const y = this.player.y + Math.sin(angle) * 100;
+          const drone = this.add.sprite(x, y, 'drone');
+          drone.setScale(0.4);
+          this.drones.push(drone);
+        }
+        this.droneShootTimers = Array(this.droneCount).fill(0);
+      }
+      for (let i = 0; i < this.droneCount; i++) {
+        const angle = (Math.PI * 2 * i) / this.droneCount;
+        this.drones[i].x = this.player.x + Math.cos(angle) * 100;
+        this.drones[i].y = this.player.y + Math.sin(angle) * 100;
+        // Find nearest enemy for rotation and shooting
+        let nearest = null, minDist = Infinity;
+        for (const enemy of this.enemyGroup) {
+          if (!enemy || enemy._destroyed) continue;
+          const dx = this.drones[i].x - enemy.x;
+          const dy = this.drones[i].y - enemy.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < minDist) {
+            minDist = dist;
+            nearest = enemy;
+          }
+        }
+        if (nearest) {
+          // Rotate drone to face nearest enemy
+          const dx = nearest.x - this.drones[i].x;
+          const dy = nearest.y - this.drones[i].y;
+          const droneAngle = Math.atan2(dy, dx);
+          this.drones[i].setRotation(droneAngle);
+          // Auto-shoot at nearest enemy using droneFirerate
+          if (!this.droneShootTimers) this.droneShootTimers = Array(this.droneCount).fill(0);
+          if (!this.lastDroneShot) this.lastDroneShot = Array(this.droneCount).fill(0);
+          if (time - (this.lastDroneShot[i] || 0) > this.droneFirerate) {
+            const bullet = this.matter.add.sprite(this.drones[i].x + Math.cos(droneAngle) * 40, this.drones[i].y + Math.sin(droneAngle) * 40, 'bullet');
+            bullet.setScale(0.4);
+            bullet.setBody({ type: 'rectangle', width: bullet.width * 0.4, height: bullet.height * 0.4 });
+            bullet.setIgnoreGravity(true);
+            // Set bullet collision filter to avoid player and drones
+            bullet.body.collisionFilter.group = 0;
+            bullet.body.collisionFilter.category = 0x0004; // Drone bullet category
+            bullet.body.collisionFilter.mask = 0x0002; // Only collide with enemies (category 2)
+            bullet.isBullet = true;
+            bullet.isDrone = true;
+            bullet.droneDmg = this.droneDmg;
+            this.bulletGroup.push(bullet);
+            const bulletSpeed = 25;
+            bullet.setVelocity(Math.cos(droneAngle) * bulletSpeed, Math.sin(droneAngle) * bulletSpeed);
+            bullet.setRotation(droneAngle);
+            this.lastDroneShot[i] = time;
+          }
+        }
+      }
+    }
 
     this.enemyGroup = this.enemyGroup.filter(e => e && !e._destroyed);
     this.bulletGroup = this.bulletGroup.filter(b => b && !b._destroyed);
@@ -394,6 +561,21 @@ class GameScene extends Phaser.Scene {
         });
       });
       this.bloodstainQueue = [];
+    }
+
+    // Brice class: healing regen per second (0.4 HP/s per upgrade, max 2 HP/s)
+    if (this.playerClass === 'brice' && this.briceRegen > 0 && this.player.hp > 0) {
+      if (!this._briceRegenBuffer) this._briceRegenBuffer = 0;
+      // Regen rate: 0.4 * briceRegen per second
+      const regenRate = Math.min(this.briceRegen * 0.4, 2);
+      this._briceRegenBuffer += regenRate * (delta / 1000);
+      if (this._briceRegenBuffer >= 0.1) {
+        const healAmt = Math.floor(this._briceRegenBuffer * 10) / 10;
+        this.player.hp = Math.min(this.player.hp + healAmt, 200);
+        this.player.hp = Math.round(this.player.hp * 10) / 10;
+        this._briceRegenBuffer -= healAmt;
+        this.updateHpText();
+      }
     }
   }
 

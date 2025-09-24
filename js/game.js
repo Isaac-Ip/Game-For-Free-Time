@@ -12,6 +12,7 @@ import TitleScene from './titleScene.js'
 import GameScene from './gameScene.js'
 import DeathScene from './deathScene.js'
 import UpgradeScene from './upgradeScene.js'
+import ClassScene from './classScene.js'
 
 // create the new scenes
 const splashScene = new SplashScene()
@@ -19,6 +20,7 @@ const titleScene = new TitleScene()
 const gameScene = new GameScene()
 const deathScene = new DeathScene()
 const upgradeScene = new UpgradeScene();
+const classScene = new ClassScene();
 
 /**
  * Start Phaser Game.
@@ -43,11 +45,12 @@ const config = {
 
 const game = new Phaser.Game(config);
 
+game.scene.start('splashScene');
 game.scene.add('splashScene', splashScene);
 game.scene.add('titleScene', titleScene);
 game.scene.add('gameScene', gameScene);
 game.scene.add('deathScene', deathScene);
 game.scene.add('upgradeScene', upgradeScene);
-
+game.scene.add('classScene', classScene);
 
 game.scene.start('splashScene');

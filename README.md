@@ -65,11 +65,37 @@ RELOAD reduces the time for reloading the magasines: 3s -> 2.25s -> 1.5s -> 0.75
 SPRAY reduces the spray range of the bullets. 20 degree spray ->>>> 0 degree spray<br>
 AMMO increases the amount of bullets that can be shot before reloads: 6 -> 15 -> 30 -> 100 -> 1000
 
-Ver.1.6.0<br>
+Ver. 1.6.0<br>
 Added a new upgrade, critical hits and armored enemies.<br>
 CRIT increases crit chance: 5% -> 10% -> 15% -> 20% -> 30%<br>
-Red bullets will deal 3 crit damage. If you don't know if it hit, then try to find the crit particles.
+Red bullets will deal 3 crit damage. If you don't know if it hit, then try to find the crit particles.<br>
 Enemies now have a 20% chance of spawning as a armored enemy, having 15 hp and drops 8-14 bolts.
+
+Ver. 1.7.0<br>
+Created new classes! Yay.<br>
+Total 6 new classes.<br>
+Normal: The original player, no buffs.<br>
+Frank: 2 starter drones. <font color="#ff0000">This class is for gametesters only.</font><br>
+Brice: Slower, larger, and no recoil but gains 200 hp. <font color="#ff0000">This class is for gametesters only.</font><br>
+Tracker: Has homing bullets, you cannot possibly miss now.<br>
+Brokie: Gets 2x bolts. Become rich I guess.<br>
+Hunter: Does double base and crit damage. Crit will kill normal enemies with one shot.
+
+The Frank and Brice classes have specific upgrades to their class.<br>
+
+Frank<br>
+Drone Dmg upgrades drone damage: 1 -> 2 -> 3 -> 4 -> 5<br>
+Drone Firerate decreases the time between shots: 1s ->>>> 0.05s<br>
+Drone Count increases the number of drones by 1: 2 drones ->>>> 8 drones
+
+Brice<br>
+Healing increases the healing per second: 0.4hp -> 0.8hp -> 1.2hp -> 1.6hp -> 2hp<br>
+Defence decreases the amount of damage taken: 0% dmg reduction ->>>> 50% dmg reduction
+
+Ver. 1.7.1<br>
+Fixed a bug where the Brice class didn't heal and showed a lot of decimals when taking damage with upgraded defence.
+Fixed a bug where the Tracker bullets didn't home.
+Fixed a bug where the Frank drones would deal damage to the player.
 
 MORE TO COME SOON!<br>
 If you want something fixed or new added, fill this out: [LINK](https://docs.google.com/forms/d/e/1FAIpQLSdBAkZc1rAzE6f18CH9MnjB5y6Eiiyr9PpKyLDDSJMIWIeGSA/viewform?usp=header/)

@@ -50,17 +50,160 @@ class UpgradeScene extends Phaser.Scene {
     const buttonSpacing = screenWidth / 6;
     const buttonScale = 0.5;
 
-    // X positions: 1/5, 2/5, 3/5, 4/5 of screen width
+    // X positions: 1/6, 2/6, ... of screen width
     const firerateX = buttonSpacing * 1;
     const reloadX = buttonSpacing * 2;
     const sprayX = buttonSpacing * 3;
     const ammoX = buttonSpacing * 4;
     const critX = buttonSpacing * 5;
+    const droneDmgX = buttonSpacing * 2;
+    const droneFirerateX = buttonSpacing * 4;
+    // Only show drone upgrades for Frank class
+    const frankClass = gameScene && gameScene.playerClass === 'frank';
 
     const firerateButton = this.add.image(firerateX, buttonY, 'upgrade').setInteractive().setScale(buttonScale);
     this.add.text(firerateX, buttonY + labelOffset, 'Upgrade Firerate', {
       font: '32px Arial', fill: '#fff', align: 'center'
     }).setOrigin(0.5);
+
+    // --- Frank-specific upgrades will be placed below base upgrades ---
+    // --- Place Frank-specific upgrades below base upgrades ---
+    if (frankClass) {
+      const frankY = buttonY + 180;
+      // Drone Damage Upgrade
+      const droneDmgButton = this.add.image(droneDmgX, frankY, 'upgrade').setInteractive().setScale(buttonScale);
+      this.add.text(droneDmgX, frankY + labelOffset, 'Upgrade Drone Dmg', {
+        font: '32px Arial', fill: '#fff', align: 'center'
+      }).setOrigin(0.5);
+      droneDmgButton.on('pointerdown', () => {
+        if (gameScene.bolts < 50) {
+          const unaffordable = this.add.image(droneDmgX, frankY, 'unaffordableParticle').setScale(0.5);
+          this.tweens.add({
+            targets: unaffordable,
+            y: frankY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => unaffordable.destroy()
+          });
+          return;
+        }
+        if (gameScene.droneDmg >= 5) {
+          const maxed = this.add.image(droneDmgX, frankY, 'maxedParticle').setScale(0.5);
+          this.tweens.add({
+            targets: maxed,
+            y: frankY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => maxed.destroy()
+          });
+          return;
+        }
+        gameScene.droneDmg += 1;
+        gameScene.bolts -= 50;
+        this.updateBoltText();
+        const successful = this.add.image(droneDmgX, frankY, 'successParticle').setScale(0.5);
+        this.tweens.add({
+          targets: successful,
+          y: frankY - 80,
+          alpha: 0,
+          duration: 1200,
+          ease: 'Cubic.easeOut',
+          onComplete: () => successful.destroy()
+        });
+      });
+
+      // Drone Firerate Upgrade
+      const droneFirerateButton = this.add.image(droneFirerateX, frankY, 'upgrade').setInteractive().setScale(buttonScale);
+      this.add.text(droneFirerateX, frankY + labelOffset, 'Upgrade Drone Firerate', {
+        font: '32px Arial', fill: '#fff', align: 'center'
+      }).setOrigin(0.5);
+      droneFirerateButton.on('pointerdown', () => {
+        if (gameScene.bolts < 50) {
+          const unaffordable = this.add.image(droneFirerateX, frankY, 'unaffordableParticle').setScale(0.5);
+          this.tweens.add({
+            targets: unaffordable,
+            y: frankY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => unaffordable.destroy()
+          });
+          return;
+        }
+        if (gameScene.droneFirerate <= 50) {
+          const maxed = this.add.image(droneFirerateX, frankY, 'maxedParticle').setScale(0.5);
+          this.tweens.add({
+            targets: maxed,
+            y: frankY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => maxed.destroy()
+          });
+          return;
+        }
+        gameScene.droneFirerate -= 190;
+        gameScene.bolts -= 50;
+        this.updateBoltText();
+        const successful = this.add.image(droneFirerateX, frankY, 'successParticle').setScale(0.5);
+        this.tweens.add({
+          targets: successful,
+          y: frankY - 80,
+          alpha: 0,
+          duration: 1200,
+          ease: 'Cubic.easeOut',
+          onComplete: () => successful.destroy()
+        });
+      });
+
+      // Drone Count Upgrade (up to 8)
+      const droneCountX = (droneDmgX + droneFirerateX) / 2;
+      const droneCountButton = this.add.image(droneCountX, frankY + 120, 'upgrade').setInteractive().setScale(buttonScale);
+      this.add.text(droneCountX, frankY + labelOffset + 120, 'Upgrade Drone Count', {
+        font: '32px Arial', fill: '#fff', align: 'center'
+      }).setOrigin(0.5);
+      droneCountButton.on('pointerdown', () => {
+        if (gameScene.bolts < 100) {
+          const unaffordable = this.add.image(droneCountX, frankY + 120, 'unaffordableParticle').setScale(0.5);
+          this.tweens.add({
+            targets: unaffordable,
+            y: frankY + 40,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => unaffordable.destroy()
+          });
+          return;
+        }
+        if (!gameScene.droneCount) gameScene.droneCount = 2;
+        if (gameScene.droneCount >= 8) {
+          const maxed = this.add.image(droneCountX, frankY + 120, 'maxedParticle').setScale(0.5);
+          this.tweens.add({
+            targets: maxed,
+            y: frankY + 40,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => maxed.destroy()
+          });
+          return;
+        }
+        gameScene.droneCount += 1;
+        gameScene.bolts -= 100;
+        this.updateBoltText();
+        const successful = this.add.image(droneCountX, frankY + 120, 'successParticle').setScale(0.5);
+        this.tweens.add({
+          targets: successful,
+          y: frankY + 40,
+          alpha: 0,
+          duration: 1200,
+          ease: 'Cubic.easeOut',
+          onComplete: () => successful.destroy()
+        });
+      });
+    }
 
     const reloadButton = this.add.image(reloadX, buttonY, 'upgrade').setInteractive().setScale(buttonScale);
     this.add.text(reloadX, buttonY + labelOffset, 'Upgrade Reload', {
@@ -81,6 +224,102 @@ class UpgradeScene extends Phaser.Scene {
     this.add.text(critX, buttonY + labelOffset, 'Upgrade Crit', {
       font: '32px Arial', fill: '#fff', align: 'center'
     }).setOrigin(0.5);
+
+    // --- Brice-specific upgrades below base upgrades ---
+    const briceClass = gameScene && gameScene.playerClass === 'brice';
+    if (briceClass) {
+      const briceY = buttonY + 180;
+      // Healing Upgrade
+      const healX = buttonSpacing * 2.5;
+      const healBtn = this.add.image(healX, briceY, 'upgrade').setInteractive().setScale(buttonScale);
+      this.add.text(healX, briceY + labelOffset, 'Upgrade Healing', {
+        font: '32px Arial', fill: '#fff', align: 'center'
+      }).setOrigin(0.5);
+      healBtn.on('pointerdown', () => {
+        if (gameScene.bolts < 75) {
+          const unaffordable = this.add.image(healX, briceY, 'unaffordableParticle').setScale(0.5);
+          this.tweens.add({
+            targets: unaffordable,
+            y: briceY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => unaffordable.destroy()
+          });
+          return;
+        }
+        if (!gameScene.briceRegen) gameScene.briceRegen = 0;
+        if (gameScene.briceRegen >= 5) {
+          const maxed = this.add.image(healX, briceY, 'maxedParticle').setScale(0.5);
+          this.tweens.add({
+            targets: maxed,
+            y: briceY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => maxed.destroy()
+          });
+          return;
+        }
+        gameScene.briceRegen += 1;
+        gameScene.bolts -= 75;
+        this.updateBoltText();
+        const successful = this.add.image(healX, briceY, 'successParticle').setScale(0.5);
+        this.tweens.add({
+          targets: successful,
+          y: briceY - 80,
+          alpha: 0,
+          duration: 1200,
+          ease: 'Cubic.easeOut',
+          onComplete: () => successful.destroy()
+        });
+      });
+      // Defense Upgrade
+      const defX = buttonSpacing * 3.5;
+      const defBtn = this.add.image(defX, briceY, 'upgrade').setInteractive().setScale(buttonScale);
+      this.add.text(defX, briceY + labelOffset, 'Upgrade Defence', {
+        font: '32px Arial', fill: '#fff', align: 'center'
+      }).setOrigin(0.5);
+      defBtn.on('pointerdown', () => {
+        if (gameScene.bolts < 75) {
+          const unaffordable = this.add.image(defX, briceY, 'unaffordableParticle').setScale(0.5);
+          this.tweens.add({
+            targets: unaffordable,
+            y: briceY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => unaffordable.destroy()
+          });
+          return;
+        }
+        if (!gameScene.briceDef) gameScene.briceDef = 0;
+        if (gameScene.briceDef >= 5) {
+          const maxed = this.add.image(defX, briceY, 'maxedParticle').setScale(0.5);
+          this.tweens.add({
+            targets: maxed,
+            y: briceY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => maxed.destroy()
+          });
+          return;
+        }
+        gameScene.briceDef += 1;
+        gameScene.bolts -= 75;
+        this.updateBoltText();
+        const successful = this.add.image(defX, briceY, 'successParticle').setScale(0.5);
+        this.tweens.add({
+          targets: successful,
+          y: briceY - 80,
+          alpha: 0,
+          duration: 1200,
+          ease: 'Cubic.easeOut',
+          onComplete: () => successful.destroy()
+        });
+      });
+    }
 
     sprayButton.on('pointerdown', () => {
       // Always get gameScene reference first

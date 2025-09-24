@@ -82,11 +82,13 @@ Brokie: Gets 2x bolts. Become rich I guess.<br>
 Hunter: Does double base and crit damage. Crit will kill normal enemies with one shot.
 
 The Frank and Brice classes have specific upgrades to their class.<br>
+These upgrades are guaranteed to be upgraded. They cannot fail.
 
 Frank<br>
 Drone Dmg upgrades drone damage: 1 -> 2 -> 3 -> 4 -> 5<br>
 Drone Firerate decreases the time between shots: 1s ->>>> 0.05s<br>
-Drone Count increases the number of drones by 1: 2 drones ->>>> 8 drones
+Drone Count increases the number of drones by 1: 2 drones ->>>> 8 drones<br>
+Drone Dmg and Drone Firerate costs 50 bolts, while Drone Count costs 100 bolts.
 
 Brice<br>
 Healing increases the healing per second: 0.4hp -> 0.8hp -> 1.2hp -> 1.6hp -> 2hp<br>

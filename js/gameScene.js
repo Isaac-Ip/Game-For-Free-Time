@@ -508,7 +508,7 @@ class GameScene extends Phaser.Scene {
           if (!this.droneShootTimers) this.droneShootTimers = Array(this.droneCount).fill(0);
           if (!this.lastDroneShot) this.lastDroneShot = Array(this.droneCount).fill(0);
           if (time - (this.lastDroneShot[i] || 0) > this.droneFirerate) {
-            const bullet = this.matter.add.sprite(this.drones[i].x + Math.cos(droneAngle) * 40, this.drones[i].y + Math.sin(droneAngle) * 40, 'bullet');
+            const bullet = this.matter.add.sprite(this.drones[i].x + Math.cos(droneAngle) * 40, this.drones[i].y + Math.sin(droneAngle) * 40, 'drone-bullet');
             bullet.setScale(0.4);
             bullet.setBody({ type: 'rectangle', width: bullet.width * 0.4, height: bullet.height * 0.4 });
             bullet.setIgnoreGravity(true);

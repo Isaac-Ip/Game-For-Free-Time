@@ -157,9 +157,9 @@ class GameScene extends Phaser.Scene {
     // Determine player class
     this.playerClass = (data && data.playerClass) ? data.playerClass : 'normal';
     if (this.playerClass === 'frank') {
-    this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'frank-player');
+      this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'frank-player');
     } else {
-    this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'player');
+      this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'player');
     }
     if (this.playerClass === 'brice') {
       this.player.setScale(0.55);

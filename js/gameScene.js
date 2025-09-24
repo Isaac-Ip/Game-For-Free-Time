@@ -49,6 +49,7 @@ class GameScene extends Phaser.Scene {
 
     this.GameSceneBackgroundImage = null;
     this.player = null;
+    this.frankPlayer = null;
     this.playerReload = null;
     this.enemy = null;
     this.enemyHurt = null;
@@ -99,6 +100,7 @@ class GameScene extends Phaser.Scene {
     console.log('Game Scene preload')
     this.load.image('game-scene-background', './assets/gameplay-scene.png')
     this.load.image('player', './assets/player.png')
+    this.load.image('frank-player', './assets/frank-player.png')
     this.load.image('player-reload', './assets/player-reload.png')
     this.load.image('enemy', './assets/zombie.png')
     this.load.image('enemy-hurt', './assets/zombie-hurt.png')
@@ -154,7 +156,11 @@ class GameScene extends Phaser.Scene {
 
     // Determine player class
     this.playerClass = (data && data.playerClass) ? data.playerClass : 'normal';
+    if (this.playerClass === 'frank') {
+    this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'frank-player');
+    } else {
     this.player = this.matter.add.sprite(1920 / 2, 1080 / 2, 'player');
+    }
     if (this.playerClass === 'brice') {
       this.player.setScale(0.55);
       this.player.setOrigin(0.5);

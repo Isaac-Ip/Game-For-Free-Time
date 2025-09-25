@@ -58,6 +58,7 @@ class GameScene extends Phaser.Scene {
     this.armoredEnemyHurt = null;
     this.bullet = null;
     this.critBullet = null;
+    this.flame = null;
     this.bulletGroup = [];
     this.enemyGroup = [];
     this.bloodstain = null;
@@ -114,6 +115,7 @@ class GameScene extends Phaser.Scene {
     this.load.image('armored-enemy-hurt', './assets/armored-zombie-hurt.png')
     this.load.image('armored-enemy', './assets/armored-zombie.png')
     this.load.image('bullet', './assets/bullet.png')
+    this.load.image('flame', './assets/flame.png')
     this.load.image('bloodstain', './assets/bloodstain.png')
     this.load.image('crit-particle', './assets/crit-particle.png')
     this.load.image('crit-bullet', './assets/crit-bullet.png')
@@ -140,6 +142,8 @@ class GameScene extends Phaser.Scene {
     this.isTracker = (this.playerClass === 'tracker');
     // Hunter class: mark for double damage
     this.isHunter = (this.playerClass === 'hunter');
+    // Arsonist class: has orbiting flames
+    this.isArsonist = (this.playerClass === 'arsonist');
     console.log('Game Scene create')
     this.cameras.main.setBackgroundColor('#222');
     this.background = this.add.sprite(0, 0, 'game-scene-background');
@@ -200,6 +204,19 @@ class GameScene extends Phaser.Scene {
       this.droneShootTimers = Array(this.droneCount).fill(0);
     }
 
+    if (this.playerClass === 'arsonist') {
+      this.flameCount = this.droneCount || 2;
+      this.drones = [];
+      for (let i = 0; i < this.droneCount; i++) {
+        const angle = (Math.PI * 2 * i) / this.droneCount;
+        const x = this.player.x + Math.cos(angle) * 100;
+        const y = this.player.y + Math.sin(angle) * 100;
+        const drone = this.add.sprite(x, y, 'drone');
+        drone.setScale(0.4);
+        this.drones.push(drone);
+      }
+    }
+
     this.updateHpText();
 
     this.bulletGroup = [];
@@ -216,7 +233,7 @@ class GameScene extends Phaser.Scene {
         // --- Splash Drone Bullet/Enemy collision ---
         if (
           ((objA.isBullet && objA.isSplash && objB.isEnemy) ||
-          (objB.isBullet && objB.isSplash && objA.isEnemy))
+            (objB.isBullet && objB.isSplash && objA.isEnemy))
         ) {
           const bullet = objA.isSplash ? objA : objB;
           // Only trigger splash once
@@ -453,7 +470,7 @@ class GameScene extends Phaser.Scene {
               if (this.playerClass === 'frank') {
                 this.player.setTexture('frank-player-reload');
               } else {
-              this.player.setTexture('player-reload');
+                this.player.setTexture('player-reload');
               }
               this.isReloadingTexture = true;
               this.time.delayedCall(this.reloadTime, () => {

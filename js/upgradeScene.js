@@ -43,24 +43,24 @@ class UpgradeScene extends Phaser.Scene {
       align: 'center'
     }).setOrigin(0.5);
 
-  // Four evenly spaced upgrade buttons in a row
-  const screenWidth = 1920;
-  const buttonY = 1080 / 2;
-  const labelOffset = 70;
-  const buttonSpacing = screenWidth / 6;
-  const buttonScale = 0.5;
+    // Four evenly spaced upgrade buttons in a row
+    const screenWidth = 1920;
+    const buttonY = 1080 / 2;
+    const labelOffset = 70;
+    const buttonSpacing = screenWidth / 6;
+    const buttonScale = 0.5;
 
-  // X positions: 1/6, 2/6, ... of screen width
-  const firerateX = buttonSpacing * 1;
-  const reloadX = buttonSpacing * 2;
-  const sprayX = buttonSpacing * 3;
-  const ammoX = buttonSpacing * 4;
-  const critX = buttonSpacing * 5;
-  const droneDmgX = buttonSpacing * 1.5;
-  const splashX = buttonSpacing * 3;
-  const droneFirerateX = buttonSpacing * 4.5;
-  // Only show drone upgrades for Frank class
-  const frankClass = gameScene && gameScene.playerClass === 'frank';
+    // X positions: 1/6, 2/6, ... of screen width
+    const firerateX = buttonSpacing * 1;
+    const reloadX = buttonSpacing * 2;
+    const sprayX = buttonSpacing * 3;
+    const ammoX = buttonSpacing * 4;
+    const critX = buttonSpacing * 5;
+    const droneDmgX = buttonSpacing * 1.5;
+    const splashX = buttonSpacing * 3;
+    const droneFirerateX = buttonSpacing * 4.5;
+    // Only show drone upgrades for Frank class
+    const frankClass = gameScene && gameScene.playerClass === 'frank';
 
     const firerateButton = this.add.image(firerateX, buttonY, 'upgrade').setInteractive().setScale(buttonScale);
     this.add.text(firerateX, buttonY + labelOffset, 'Upgrade Firerate', {

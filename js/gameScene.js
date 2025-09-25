@@ -755,8 +755,12 @@ class GameScene extends Phaser.Scene {
       // Clean up bulletGroup array
       this.bulletGroup = this.bulletGroup.filter(b => b && !b._destroyed);
     }
+    for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 * i) / 6;
+        this.flame[i].x = this.player.x + Math.cos(angle) * 100;
+        this.flame[i].y = this.player.y + Math.sin(angle) * 100;
   }
-
+}
 }
 
 

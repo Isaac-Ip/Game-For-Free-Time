@@ -407,8 +407,9 @@ class UpgradeScene extends Phaser.Scene {
             onComplete: () => successful.destroy()
           });
         } else {
-          const failed = this.add.image(sprayX, buttonY, 'failedParticle').setScale(0.5);
           gameScene.bolts -= 50;
+          this.updateBoltText();
+          const failed = this.add.image(sprayX, buttonY, 'failedParticle').setScale(0.5);
           this.tweens.add({
             targets: failed,
             y: buttonY - 80,
@@ -450,7 +451,6 @@ class UpgradeScene extends Phaser.Scene {
       if (gameScene.reloadingAmmo === 6 || gameScene.reloadingAmmo === 15 || gameScene.reloadingAmmo === 30 || gameScene.reloadingAmmo === 100) {
         this.chances = Phaser.Math.Between(1, 2);
         if (this.chances === 1) {
-
           if (gameScene.reloadingAmmo === 6) {
             gameScene.reloadingAmmo = 15;
             gameScene.ammo = 15;
@@ -477,6 +477,7 @@ class UpgradeScene extends Phaser.Scene {
           });
         } else {
           gameScene.bolts -= 50;
+          this.updateBoltText();
           const failed = this.add.image(ammoX, buttonY, 'failedParticle').setScale(0.5);
           this.tweens.add({
             targets: failed,
@@ -541,8 +542,9 @@ class UpgradeScene extends Phaser.Scene {
             onComplete: () => successful.destroy()
           });
         } else {
-          const failed = this.add.image(reloadX, buttonY, 'failedParticle').setScale(0.5);
           gameScene.bolts -= 50;
+          this.updateBoltText();
+          const failed = this.add.image(reloadX, buttonY, 'failedParticle').setScale(0.5);
           this.tweens.add({
             targets: failed,
             y: buttonY - 80,
@@ -606,8 +608,9 @@ class UpgradeScene extends Phaser.Scene {
             onComplete: () => successful.destroy()
           });
         } else {
-          const failed = this.add.image(firerateX, buttonY, 'failedParticle').setScale(0.5);
           gameScene.bolts -= 50;
+          this.updateBoltText();
+          const failed = this.add.image(firerateX, buttonY, 'failedParticle').setScale(0.5);
           this.tweens.add({
             targets: failed,
             y: buttonY - 80,

@@ -80,7 +80,13 @@ class ClassScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive();
     arsonistBtn.on('pointerdown', () => {
-  this.scene.start('gameScene', { playerClass: 'arsonist' });
+      this.getPassword('Enter password for Arsonist:', (pw) => {
+        if (pw === 'pyropass') {
+          this.scene.start('gameScene', { playerClass: 'arsonist' });
+        } else {
+          this.showError('Incorrect password!');
+        }
+      });
     });
   }
 

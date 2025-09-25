@@ -99,5 +99,13 @@ Fixed a bug where the Brice class didn't heal and showed a lot of decimals when 
 Fixed a bug where the Tracker bullets didn't home.
 Fixed a bug where the Frank drones would deal damage to the player.
 
+Ver. 1.7.2<br>
+Fixed a bug where bullets never hit because they slowed down and end up staying in place. They now disappear at a specific velocity.
+
+Ver. 1.8.0<br>
+Balance changes:
+Frank class has slower drone firerate but now has splash dmg (only available when drone stats maxed out).
+Brice class has been buffed with double regeneration.
+
 MORE TO COME SOON!<br>
 If you want something fixed or new added, fill this out: [LINK](https://docs.google.com/forms/d/e/1FAIpQLSdBAkZc1rAzE6f18CH9MnjB5y6Eiiyr9PpKyLDDSJMIWIeGSA/viewform?usp=header/)

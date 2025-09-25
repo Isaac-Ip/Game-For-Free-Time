@@ -26,10 +26,10 @@ class UpgradeScene extends Phaser.Scene {
     this.load.image('unaffordableParticle', './assets/unaffordable-particle.png')
   }
 
-  create() {
+  create(data) {
     // Show bolts count from gameScene
     const gameScene = this.scene.get('gameScene');
-    this.boltText = this.add.text(1920 / 2, 1080 / 2 - 160, '', {
+    this.boltText = this.add.text(1920 / 2, 1080 / 2 - 260, '', {
       font: '32px Arial', fill: '#fff', align: 'center'
     }).setOrigin(0.5);
     this.updateBoltText = () => {
@@ -37,29 +37,30 @@ class UpgradeScene extends Phaser.Scene {
     };
     this.updateBoltText();
     this.cameras.main.setBackgroundColor('#222222');
-    this.upgradeText = this.add.text(1920 / 2, 1080 / 2 - 100, 'Upgrade Gun', {
+    this.upgradeText = this.add.text(1920 / 2, 1080 / 2 - 200, 'Upgrade Gun', {
       font: '48px Arial',
       fill: '#ffffff',
       align: 'center'
     }).setOrigin(0.5);
 
-    // Four evenly spaced upgrade buttons in a row
-    const screenWidth = 1920;
-    const buttonY = 1080 / 2 + 100;
-    const labelOffset = 70;
-    const buttonSpacing = screenWidth / 6;
-    const buttonScale = 0.5;
+  // Four evenly spaced upgrade buttons in a row
+  const screenWidth = 1920;
+  const buttonY = 1080 / 2;
+  const labelOffset = 70;
+  const buttonSpacing = screenWidth / 6;
+  const buttonScale = 0.5;
 
-    // X positions: 1/6, 2/6, ... of screen width
-    const firerateX = buttonSpacing * 1;
-    const reloadX = buttonSpacing * 2;
-    const sprayX = buttonSpacing * 3;
-    const ammoX = buttonSpacing * 4;
-    const critX = buttonSpacing * 5;
-    const droneDmgX = buttonSpacing * 2;
-    const droneFirerateX = buttonSpacing * 4;
-    // Only show drone upgrades for Frank class
-    const frankClass = gameScene && gameScene.playerClass === 'frank';
+  // X positions: 1/6, 2/6, ... of screen width
+  const firerateX = buttonSpacing * 1;
+  const reloadX = buttonSpacing * 2;
+  const sprayX = buttonSpacing * 3;
+  const ammoX = buttonSpacing * 4;
+  const critX = buttonSpacing * 5;
+  const droneDmgX = buttonSpacing * 1.5;
+  const splashX = buttonSpacing * 3;
+  const droneFirerateX = buttonSpacing * 4.5;
+  // Only show drone upgrades for Frank class
+  const frankClass = gameScene && gameScene.playerClass === 'frank';
 
     const firerateButton = this.add.image(firerateX, buttonY, 'upgrade').setInteractive().setScale(buttonScale);
     this.add.text(firerateX, buttonY + labelOffset, 'Upgrade Firerate', {
@@ -114,6 +115,59 @@ class UpgradeScene extends Phaser.Scene {
         });
       });
 
+      // Splash Drone Upgrade
+      const splashBtn = this.add.image(splashX, frankY, 'upgrade').setInteractive().setScale(buttonScale);
+      this.add.text(splashX, frankY + labelOffset, 'Activate Splash', {
+        font: '32px Arial', fill: '#fff', align: 'center'
+      }).setOrigin(0.5);
+      splashBtn.on('pointerdown', () => {
+        if (gameScene.droneDmg >= 5 && gameScene.droneFirerate <= 100 && gameScene.droneCount >= 8) {
+          if (gameScene.bolts < 500) {
+            const unaffordable = this.add.image(splashX, frankY, 'unaffordableParticle').setScale(0.5);
+            this.tweens.add({
+              targets: unaffordable,
+              y: frankY - 80,
+              alpha: 0,
+              duration: 1200,
+              ease: 'Cubic.easeOut',
+              onComplete: () => unaffordable.destroy()
+            });
+            return;
+          }
+          if (gameScene.splashDroneUpgrade) {
+            const maxed = this.add.image(splashX, frankY, 'maxedParticle').setScale(0.5);
+            this.tweens.add({
+              targets: maxed,
+              y: frankY - 80,
+              alpha: 0,
+              duration: 1200,
+              ease: 'Cubic.easeOut',
+              onComplete: () => maxed.destroy()
+            });
+            return;
+          }
+          gameScene.splashDroneUpgrade = true;
+          if (gameScene.drones) {
+            gameScene.drones.forEach(drone => {
+              drone.setTexture('splash-drone');
+            });
+          }
+          gameScene.bolts -= 500;
+          this.updateBoltText();
+          const successful = this.add.image(splashX, frankY, 'successParticle').setScale(0.5);
+          this.tweens.add({
+            targets: successful,
+            y: frankY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => successful.destroy()
+          });
+          splashBtn.disableInteractive();
+        }
+        // Do nothing if requirements are not met
+      });
+
       // Drone Firerate Upgrade
       const droneFirerateButton = this.add.image(droneFirerateX, frankY, 'upgrade').setInteractive().setScale(buttonScale);
       this.add.text(droneFirerateX, frankY + labelOffset, 'Upgrade Drone Firerate', {
@@ -132,7 +186,7 @@ class UpgradeScene extends Phaser.Scene {
           });
           return;
         }
-        if (gameScene.droneFirerate <= 50) {
+        if (gameScene.droneFirerate <= 100) {
           const maxed = this.add.image(droneFirerateX, frankY, 'maxedParticle').setScale(0.5);
           this.tweens.add({
             targets: maxed,
@@ -144,7 +198,7 @@ class UpgradeScene extends Phaser.Scene {
           });
           return;
         }
-        gameScene.droneFirerate -= 190;
+        gameScene.droneFirerate -= 180;
         gameScene.bolts -= 50;
         this.updateBoltText();
         const successful = this.add.image(droneFirerateX, frankY, 'successParticle').setScale(0.5);
@@ -160,8 +214,8 @@ class UpgradeScene extends Phaser.Scene {
 
       // Drone Count Upgrade (up to 8)
       const droneCountX = (droneDmgX + droneFirerateX) / 2;
-      const droneCountButton = this.add.image(droneCountX, frankY + 120, 'upgrade').setInteractive().setScale(buttonScale);
-      this.add.text(droneCountX, frankY + labelOffset + 120, 'Upgrade Drone Count', {
+      const droneCountButton = this.add.image(droneCountX, frankY + 180, 'upgrade').setInteractive().setScale(buttonScale);
+      this.add.text(droneCountX, frankY + labelOffset + 180, 'Upgrade Drone Count', {
         font: '32px Arial', fill: '#fff', align: 'center'
       }).setOrigin(0.5);
       droneCountButton.on('pointerdown', () => {
@@ -642,6 +696,72 @@ class UpgradeScene extends Phaser.Scene {
       }
     });
 
+    // Add Splash Drone Upgrade button for Frank if not already active and all drone upgrades are maxed
+    critButton.on('pointerdown', () => {
+      // Always get gameScene reference first
+      const gameScene = this.scene.get('gameScene');
+      if (gameScene.bolts < 50) {
+        const unaffordable = this.add.image(critX, buttonY, 'unaffordableParticle').setScale(0.5);
+        this.tweens.add({
+          targets: unaffordable,
+          y: buttonY - 80,
+          alpha: 0,
+          duration: 1200,
+          ease: 'Cubic.easeOut',
+          onComplete: () => unaffordable.destroy()
+        });
+        return;
+      }
+      // Access GameScene and increase crit chance
+      if (gameScene.crit === 5 || gameScene.crit === 10 || gameScene.crit === 15 || gameScene.crit === 20) {
+        this.chances = Phaser.Math.Between(1, 2);
+        if (this.chances === 1) {
+          if (gameScene.crit === 5) {
+            gameScene.crit = 10;
+          } else if (gameScene.crit === 10) {
+            gameScene.crit = 15;
+          } else if (gameScene.crit === 15) {
+            gameScene.crit = 20;
+          } else if (gameScene.crit === 20) {
+            gameScene.crit = 30;
+          }
+          gameScene.bolts -= 50;
+          this.updateBoltText();
+          const successful = this.add.image(critX, buttonY, 'successParticle').setScale(0.5);
+          this.tweens.add({
+            targets: successful,
+            y: buttonY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => successful.destroy()
+          });
+        } else {
+          const failed = this.add.image(critX, buttonY, 'failedParticle').setScale(0.5);
+          gameScene.bolts -= 50;
+          this.tweens.add({
+            targets: failed,
+            y: buttonY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => failed.destroy()
+          });
+        }
+      } else {
+        // Show maxed particle effect
+        const maxed = this.add.image(critX, buttonY, 'maxedParticle').setScale(0.5);
+        this.tweens.add({
+          targets: maxed,
+          y: buttonY - 80,
+          alpha: 0,
+          duration: 1200,
+          ease: 'Cubic.easeOut',
+          onComplete: () => maxed.destroy()
+        });
+      }
+    });
+
     this.input.keyboard.on('keydown-ENTER', () => {
       this.upgradeLevel++;
       this.upgradeText.setText('Upgrade Gun\nCurrent Level: ' + this.upgradeLevel);
@@ -661,3 +781,4 @@ class UpgradeScene extends Phaser.Scene {
 
 
 export default UpgradeScene
+

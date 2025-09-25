@@ -51,6 +51,7 @@ class GameScene extends Phaser.Scene {
     this.player = null;
     this.frankPlayer = null;
     this.playerReload = null;
+    this.frankPlayerReload = null;
     this.enemy = null;
     this.enemyHurt = null;
     this.armoredEnemy = null;
@@ -63,11 +64,15 @@ class GameScene extends Phaser.Scene {
     this.bloodstainQueue = [];
     this.droneDmg = 1; // Drone upgrade damage
     this.droneFirerate = 1000; // ms between shots
+    this.droneUpgrade = 0;
+    this.splashDrone = null;
+    this.explode = null;
     this.critParticle = null;
     // Brice class: healing and defense upgrades
     this.briceRegen = 0;
     this.briceDef = 0;
     this.lastBriceRegen = 0;
+    this.splashDroneUpgrade = false; // Track if splash drone upgrade is active
   }
 
   /**
@@ -84,12 +89,13 @@ class GameScene extends Phaser.Scene {
     this.reloadingAmmo = 6;
     this.firerate = 100;
     this.reloadTime = 3000;
-    this.bolts = 0;
+    this.bolts = 100000;
     this.crit = 5;
     this.drone = null;
     this.droneBullet = null;
     this.droneDmg = 1;
     this.droneFirerate = 1000;
+    this.droneSplash = 0;
   }
 
   /**
@@ -102,6 +108,7 @@ class GameScene extends Phaser.Scene {
     this.load.image('player', './assets/player.png')
     this.load.image('frank-player', './assets/frank-player.png')
     this.load.image('player-reload', './assets/player-reload.png')
+    this.load.image('frank-player-reload', './assets/frank-player-reload.png')
     this.load.image('enemy', './assets/zombie.png')
     this.load.image('enemy-hurt', './assets/zombie-hurt.png')
     this.load.image('armored-enemy-hurt', './assets/armored-zombie-hurt.png')
@@ -112,6 +119,8 @@ class GameScene extends Phaser.Scene {
     this.load.image('crit-bullet', './assets/crit-bullet.png')
     this.load.image('drone', './assets/drone.png')
     this.load.image('drone-bullet', './assets/drone-bullet.png')
+    this.load.image('splash-drone', './assets/splash-drone.png')
+    this.load.image('explode', './assets/explode.png')
     this.load.on('loaderror', (file) => {
       console.error('Failed to load asset:', file.src);
     });
@@ -204,6 +213,85 @@ class GameScene extends Phaser.Scene {
         const objA = pair.bodyA.gameObject;
         const objB = pair.bodyB.gameObject;
         if (!objA || !objB) return;
+        // --- Splash Drone Bullet/Enemy collision ---
+        if (
+          ((objA.isBullet && objA.isSplash && objB.isEnemy) ||
+          (objB.isBullet && objB.isSplash && objA.isEnemy))
+        ) {
+          const bullet = objA.isSplash ? objA : objB;
+          // Only trigger splash once
+          if (bullet._hasSplashed) return;
+          bullet._hasSplashed = true;
+          // Show explode effect at collision point
+          const explodeX = bullet.x;
+          const explodeY = bullet.y;
+          const explodeSprite = this.add.sprite(explodeX, explodeY, 'explode');
+          explodeSprite.setScale(0.5);
+          explodeSprite.setAlpha(0.5);
+          this.tweens.add({
+            targets: explodeSprite,
+            alpha: 0,
+            duration: 350,
+            onComplete: () => explodeSprite.destroy()
+          });
+          // Deal 5 damage to all enemies in radius (e.g. 120px)
+          const splashRadius = 150;
+          this.enemyGroup.forEach(enemy => {
+            if (!enemy || enemy._destroyed) return;
+            const dx = enemy.x - explodeX;
+            const dy = enemy.y - explodeY;
+            if (Math.sqrt(dx * dx + dy * dy) <= splashRadius) {
+              enemy.hp = (enemy.hp || 1) - 5;
+              // Hurt texture logic
+              if (enemy.isArmored) {
+                if (enemy.hp <= 5) {
+                  enemy.setTexture('armored-enemy-hurt');
+                  enemy.setScale(0.55);
+                  enemy.setOrigin(0.5);
+                }
+              } else {
+                if (enemy.hp <= 2) {
+                  enemy.setTexture('enemy-hurt');
+                  enemy.setScale(0.5);
+                  enemy.setOrigin(0.5);
+                }
+              }
+              if (enemy.hp <= 0) {
+                // Capture position BEFORE destroy
+                const enemyPos = { x: enemy.x, y: enemy.y };
+                this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
+                enemy.destroy();
+                // Drop bolts
+                let boltsDropped;
+                if (enemy.isArmored) {
+                  boltsDropped = Phaser.Math.Between(11, 14);
+                } else {
+                  boltsDropped = Phaser.Math.Between(3, 7);
+                }
+                if (this.isBrokie) {
+                  this.bolts += boltsDropped * 2;
+                } else {
+                  this.bolts += boltsDropped;
+                }
+                this.updateBoltText();
+                // Queue bloodstain for next frame
+                this.bloodstainQueue.push(enemyPos);
+                // 10% chance to spawn 2 enemies
+                if (Phaser.Math.Between(1, 10) === 1) {
+                  this.createEnemy();
+                  this.createEnemy();
+                } else {
+                  this.createEnemy();
+                }
+              }
+            }
+          });
+          // Remove bullet after splash
+          this.bulletGroup = this.bulletGroup.filter(b => b !== bullet);
+          bullet.destroy();
+          return; // Don't process normal bullet/enemy logic for splash
+        }
+
         // Bullet/enemy collision
         if ((objA.isBullet && objB.isEnemy) || (objB.isBullet && objA.isEnemy)) {
           const bullet = objA.isBullet ? objA : objB;
@@ -289,7 +377,7 @@ class GameScene extends Phaser.Scene {
           if (this.playerClass === 'brice' && this.briceDef > 0) {
             dmg = 1 - 0.1 * this.briceDef;
             dmg = Math.round(dmg * 10) / 10;
-            dmg = Math.max(dmg, 0.5); // never less than 0.5
+            dmg = Math.max(dmg, 0.5); // never less than 0.25
           }
           this.player.hp -= dmg;
           this.player.hp = Math.round(this.player.hp * 10) / 10;
@@ -362,12 +450,20 @@ class GameScene extends Phaser.Scene {
               this.firingInterval.remove();
               this.firingInterval = null;
               // Swap player texture to reload
+              if (this.playerClass === 'frank') {
+                this.player.setTexture('frank-player-reload');
+              } else {
               this.player.setTexture('player-reload');
+              }
               this.isReloadingTexture = true;
               this.time.delayedCall(this.reloadTime, () => {
                 this.ammo = this.reloadingAmmo;
                 this.reloading = false;
-                this.player.setTexture('player');
+                if (this.playerClass === 'frank') {
+                  this.player.setTexture('frank-player');
+                } else {
+                  this.player.setTexture('player');
+                }
                 this.isReloadingTexture = false;
                 this.isFiringBlocked = false;
                 // If pointer is still down, resume firing
@@ -471,6 +567,9 @@ class GameScene extends Phaser.Scene {
     }
     this.player.setVelocity(vx, vy);
 
+    // --- Remove buggy splash skin logic ---
+    // No forced drone skin change here; splash skin only set when splashDroneUpgrade is true
+
     // Frank class: update drone positions and shooting
     if (this.playerClass === 'frank' && this.drones) {
       // If droneCount changed, add/remove drones
@@ -482,7 +581,9 @@ class GameScene extends Phaser.Scene {
           const angle = (Math.PI * 2 * i) / this.droneCount;
           const x = this.player.x + Math.cos(angle) * 100;
           const y = this.player.y + Math.sin(angle) * 100;
-          const drone = this.add.sprite(x, y, 'drone');
+          // Use correct skin for splash upgrade
+          const droneTexture = this.splashDroneUpgrade ? 'splash-drone' : 'drone';
+          const drone = this.add.sprite(x, y, droneTexture);
           drone.setScale(0.4);
           this.drones.push(drone);
         }
@@ -492,6 +593,12 @@ class GameScene extends Phaser.Scene {
         const angle = (Math.PI * 2 * i) / this.droneCount;
         this.drones[i].x = this.player.x + Math.cos(angle) * 100;
         this.drones[i].y = this.player.y + Math.sin(angle) * 100;
+        // Ensure drone skin matches upgrade
+        if (this.splashDroneUpgrade && this.drones[i].texture.key !== 'splash-drone') {
+          this.drones[i].setTexture('splash-drone');
+        } else if (!this.splashDroneUpgrade && this.drones[i].texture.key !== 'drone') {
+          this.drones[i].setTexture('drone');
+        }
         // Find nearest enemy for rotation and shooting
         let nearest = null, minDist = Infinity;
         for (const enemy of this.enemyGroup) {
@@ -510,25 +617,50 @@ class GameScene extends Phaser.Scene {
           const dy = nearest.y - this.drones[i].y;
           const droneAngle = Math.atan2(dy, dx);
           this.drones[i].setRotation(droneAngle);
-          // Auto-shoot at nearest enemy using droneFirerate
           if (!this.droneShootTimers) this.droneShootTimers = Array(this.droneCount).fill(0);
           if (!this.lastDroneShot) this.lastDroneShot = Array(this.droneCount).fill(0);
           if (time - (this.lastDroneShot[i] || 0) > this.droneFirerate) {
-            const bullet = this.matter.add.sprite(this.drones[i].x + Math.cos(droneAngle) * 40, this.drones[i].y + Math.sin(droneAngle) * 40, 'drone-bullet');
-            bullet.setScale(0.4);
-            bullet.setBody({ type: 'rectangle', width: bullet.width * 0.4, height: bullet.height * 0.4 });
-            bullet.setIgnoreGravity(true);
-            // Set bullet collision filter to avoid player and drones
-            bullet.body.collisionFilter.group = 0;
-            bullet.body.collisionFilter.category = 0x0004; // Drone bullet category
-            bullet.body.collisionFilter.mask = 0x0002; // Only collide with enemies (category 2)
-            bullet.isBullet = true;
-            bullet.isDrone = true;
-            bullet.droneDmg = this.droneDmg;
-            this.bulletGroup.push(bullet);
-            const bulletSpeed = 25;
-            bullet.setVelocity(Math.cos(droneAngle) * bulletSpeed, Math.sin(droneAngle) * bulletSpeed);
-            bullet.setRotation(droneAngle);
+            let bullet;
+            if (this.splashDroneUpgrade) {
+              bullet = this.matter.add.sprite(
+                this.drones[i].x + Math.cos(droneAngle) * 40,
+                this.drones[i].y + Math.sin(droneAngle) * 40,
+                'drone-bullet'
+              );
+              bullet.setScale(0.4);
+              bullet.setBody({ type: 'rectangle', width: bullet.width * 0.4, height: bullet.height * 0.4 });
+              bullet.setIgnoreGravity(true);
+              bullet.body.collisionFilter.group = 0;
+              bullet.body.collisionFilter.category = 0x0004;
+              bullet.body.collisionFilter.mask = 0x0002;
+              bullet.isBullet = true;
+              bullet.isDrone = true;
+              bullet.isSplash = true;
+              bullet.droneDmg = this.droneDmg;
+              this.bulletGroup.push(bullet);
+              const bulletSpeed = 25;
+              bullet.setVelocity(Math.cos(droneAngle) * bulletSpeed, Math.sin(droneAngle) * bulletSpeed);
+              bullet.setRotation(droneAngle);
+            } else {
+              bullet = this.matter.add.sprite(
+                this.drones[i].x + Math.cos(droneAngle) * 40,
+                this.drones[i].y + Math.sin(droneAngle) * 40,
+                'drone-bullet'
+              );
+              bullet.setScale(0.4);
+              bullet.setBody({ type: 'rectangle', width: bullet.width * 0.4, height: bullet.height * 0.4 });
+              bullet.setIgnoreGravity(true);
+              bullet.body.collisionFilter.group = 0;
+              bullet.body.collisionFilter.category = 0x0004;
+              bullet.body.collisionFilter.mask = 0x0002;
+              bullet.isBullet = true;
+              bullet.isDrone = true;
+              bullet.droneDmg = this.droneDmg;
+              this.bulletGroup.push(bullet);
+              const bulletSpeed = 25;
+              bullet.setVelocity(Math.cos(droneAngle) * bulletSpeed, Math.sin(droneAngle) * bulletSpeed);
+              bullet.setRotation(droneAngle);
+            }
             this.lastDroneShot[i] = time;
           }
         }
@@ -573,7 +705,7 @@ class GameScene extends Phaser.Scene {
     if (this.playerClass === 'brice' && this.briceRegen > 0 && this.player.hp > 0) {
       if (!this._briceRegenBuffer) this._briceRegenBuffer = 0;
       // Regen rate: 0.4 * briceRegen per second
-      const regenRate = Math.min(this.briceRegen * 0.4, 2);
+      const regenRate = Math.min(this.briceRegen * 0.8, 4);
       this._briceRegenBuffer += regenRate * (delta / 1000);
       if (this._briceRegenBuffer >= 0.1) {
         const healAmt = Math.floor(this._briceRegenBuffer * 10) / 10;
@@ -582,6 +714,29 @@ class GameScene extends Phaser.Scene {
         this._briceRegenBuffer -= healAmt;
         this.updateHpText();
       }
+    }
+
+    // Remove bullets that are stuck or have stopped moving for too long
+    if (this.bulletGroup && this.bulletGroup.length) {
+      for (const bullet of this.bulletGroup) {
+        // Track how long a bullet has been nearly stopped
+        if (!bullet._stuckTime) bullet._stuckTime = 0;
+        const speed = Math.sqrt(
+          bullet.body?.velocity?.x ** 2 + bullet.body?.velocity?.y ** 2
+        );
+        // If bullet speed is very low, increment stuck time
+        if (speed < 10) {
+          bullet._stuckTime += delta;
+        } else {
+          bullet._stuckTime = 0;
+        }
+        // Remove bullet if stuck for more than 2 seconds
+        if (bullet._stuckTime > 2000) {
+          bullet.destroy();
+        }
+      }
+      // Clean up bulletGroup array
+      this.bulletGroup = this.bulletGroup.filter(b => b && !b._destroyed);
     }
   }
 

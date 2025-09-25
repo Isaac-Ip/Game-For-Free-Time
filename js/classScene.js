@@ -74,7 +74,18 @@ class ClassScene extends Phaser.Scene {
     hunterBtn.on('pointerdown', () => {
       this.scene.start('gameScene', { playerClass: 'hunter' });
     });
+
+    // Hunter class button
+    const arsonistBtn = this.add.text(960, 900, 'Arsonist (Orbiting Flames)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+      .setOrigin(0.5)
+      .setInteractive();
+    arsonistBtn.on('pointerdown', () => {
+  this.scene.start('gameScene', { playerClass: 'arsonist' });
+    });
   }
+
+
+
 
   // Helper to prompt for password (uses browser prompt)
   getPassword(promptText, callback) {
@@ -86,6 +97,7 @@ class ClassScene extends Phaser.Scene {
   showError(msg) {
     window.alert(msg);
   }
+
 }
 
 export default ClassScene;

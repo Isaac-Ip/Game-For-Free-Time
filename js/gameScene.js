@@ -205,16 +205,21 @@ class GameScene extends Phaser.Scene {
     }
 
     if (this.playerClass === 'arsonist') {
-      this.flameCount = this.droneCount || 2;
-      this.drones = [];
-      for (let i = 0; i < this.droneCount; i++) {
-        const angle = (Math.PI * 2 * i) / this.droneCount;
-        const x = this.player.x + Math.cos(angle) * 100;
-        const y = this.player.y + Math.sin(angle) * 100;
-        const drone = this.add.sprite(x, y, 'drone');
-        drone.setScale(0.4);
-        this.drones.push(drone);
-      }
+        this.flameCount = 12;
+        this.flames = [];
+        const flameOrbitRadius = 250; // Increased distance from player
+        for (let i = 0; i < this.flameCount; i++) {
+          const angle = (Math.PI * 2 * i) / this.flameCount;
+          const x = this.player.x + Math.cos(angle) * flameOrbitRadius;
+          const y = this.player.y + Math.sin(angle) * flameOrbitRadius;
+          const flame = this.add.sprite(x, y, 'flame');
+          flame.setScale(0.7); // Make flames larger
+          flame.setAlpha(0.95); // Make flames more visible
+          flame.setDepth(10); // Ensure flames are above player and enemies
+          flame.orbitAngle = angle;
+          flame.lastHitEnemies = new Set();
+          this.flames.push(flame);
+        }
     }
 
     this.updateHpText();
@@ -515,6 +520,79 @@ class GameScene extends Phaser.Scene {
    * @param {number} delta - The delta time in ms since the last frame.
    */
   update(time, delta) {
+    // Arsonist class: update orbiting flames and check for enemy collisions
+    if (this.isArsonist && this.flames && this.flames.length) {
+      for (let i = 0; i < this.flameCount; i++) {
+        // Orbit flames around player
+  const orbitSpeed = 0.090; // radians per frame (faster)
+        this.flames[i].orbitAngle += orbitSpeed;
+  const flameOrbitRadius = 250;
+  const x = this.player.x + Math.cos(this.flames[i].orbitAngle) * flameOrbitRadius;
+  const y = this.player.y + Math.sin(this.flames[i].orbitAngle) * flameOrbitRadius;
+        this.flames[i].x = x;
+        this.flames[i].y = y;
+        // Check collision with enemies
+        for (const enemy of this.enemyGroup) {
+          if (!enemy || enemy._destroyed || enemy.hp <= 0) continue;
+          const dx = enemy.x - x;
+          const dy = enemy.y - y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 50) { // collision radius
+            if (!this.flames[i].lastHitEnemies.has(enemy)) {
+              enemy.hp = (enemy.hp || 1) - 2;
+              this.flames[i].lastHitEnemies.add(enemy);
+              // Hurt texture logic
+              if (enemy.isArmored) {
+                if (enemy.hp <= 5) {
+                  enemy.setTexture('armored-enemy-hurt');
+                  enemy.setScale(0.55);
+                  enemy.setOrigin(0.5);
+                }
+              } else {
+                if (enemy.hp <= 2) {
+                  enemy.setTexture('enemy-hurt');
+                  enemy.setScale(0.5);
+                  enemy.setOrigin(0.5);
+                }
+              }
+              if (enemy.hp <= 0) {
+                // Capture position BEFORE destroy
+                const enemyPos = { x: enemy.x, y: enemy.y };
+                this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
+                enemy.destroy();
+                // Drop bolts
+                let boltsDropped;
+                if (enemy.isArmored) {
+                  boltsDropped = Phaser.Math.Between(11, 14);
+                } else {
+                  boltsDropped = Phaser.Math.Between(3, 7);
+                }
+                if (this.isBrokie) {
+                  this.bolts += boltsDropped * 2;
+                } else {
+                  this.bolts += boltsDropped;
+                }
+                this.updateBoltText();
+                // Queue bloodstain for next frame
+                this.bloodstainQueue.push(enemyPos);
+                // 10% chance to spawn 2 enemies
+                if (Phaser.Math.Between(1, 10) === 1) {
+                  this.createEnemy();
+                  this.createEnemy();
+                } else {
+                  this.createEnemy();
+                }
+              }
+            }
+          } else {
+            // Only remove from lastHitEnemies if enemy is outside collision radius
+            if (this.flames[i].lastHitEnemies.has(enemy)) {
+              this.flames[i].lastHitEnemies.delete(enemy);
+            }
+          }
+        }
+      }
+    }
     // Tracker class: smoothly home bullets toward nearest enemy
     if (this.isTracker && this.bulletGroup && this.enemyGroup) {
       for (const bullet of this.bulletGroup) {
@@ -755,11 +833,7 @@ class GameScene extends Phaser.Scene {
       // Clean up bulletGroup array
       this.bulletGroup = this.bulletGroup.filter(b => b && !b._destroyed);
     }
-    for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI * 2 * i) / 6;
-        this.flame[i].x = this.player.x + Math.cos(angle) * 100;
-        this.flame[i].y = this.player.y + Math.sin(angle) * 100;
-  }
+
 }
 }
 

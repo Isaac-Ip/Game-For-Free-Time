@@ -95,17 +95,20 @@ Healing increases the healing per second: 0.4hp -> 0.8hp -> 1.2hp -> 1.6hp -> 2h
 Defence decreases the amount of damage taken: 0% dmg reduction ->>>> 50% dmg reduction
 
 Ver. 1.7.1<br>
-Fixed a bug where the Brice class didn't heal and showed a lot of decimals when taking damage with upgraded defence.
-Fixed a bug where the Tracker bullets didn't home.
+Fixed a bug where the Brice class didn't heal and showed a lot of decimals when taking damage with upgraded defence.<br>
+Fixed a bug where the Tracker bullets didn't home.<br>
 Fixed a bug where the Frank drones would deal damage to the player.
 
 Ver. 1.7.2<br>
 Fixed a bug where bullets never hit because they slowed down and end up staying in place. They now disappear at a specific velocity.
 
 Ver. 1.8.0<br>
-Balance changes:
-Frank class has slower drone firerate but now has splash dmg (only available when drone stats maxed out).
+Balance changes:<br>
+Frank class has slower drone firerate but now has splash dmg (only available when drone stats maxed out).<br>
 Brice class has been buffed with double regeneration.
+
+New class:<br>
+Arsonist wields 12 fast orbiting flames that deal 2 dmg each. This class is for gametesters only.
 
 MORE TO COME SOON!<br>
 If you want something fixed or new added, fill this out: [LINK](https://docs.google.com/forms/d/e/1FAIpQLSdBAkZc1rAzE6f18CH9MnjB5y6Eiiyr9PpKyLDDSJMIWIeGSA/viewform?usp=header/)

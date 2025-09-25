@@ -650,18 +650,10 @@ class UpgradeScene extends Phaser.Scene {
         return;
       }
       // Access GameScene and increase crit chance
-      if (gameScene.crit === 5 || gameScene.crit === 10 || gameScene.crit === 15 || gameScene.crit === 20) {
+      if (gameScene.crit === 5 || gameScene.crit === 10 || gameScene.crit === 15 || gameScene.crit === 20 || gameScene.crit === 25) {
         this.chances = Phaser.Math.Between(1, 2);
         if (this.chances === 1) {
-          if (gameScene.crit === 5) {
-            gameScene.crit = 10;
-          } else if (gameScene.crit === 10) {
-            gameScene.crit = 15;
-          } else if (gameScene.crit === 15) {
-            gameScene.crit = 20;
-          } else if (gameScene.crit === 20) {
-            gameScene.crit = 30;
-          }
+          gameScene.crit += 5;
           gameScene.bolts -= 50;
           this.updateBoltText();
           const successful = this.add.image(critX, buttonY, 'successParticle').setScale(0.5);
@@ -674,8 +666,9 @@ class UpgradeScene extends Phaser.Scene {
             onComplete: () => successful.destroy()
           });
         } else {
-          const failed = this.add.image(critX, buttonY, 'failedParticle').setScale(0.5);
           gameScene.bolts -= 50;
+          this.updateBoltText();
+          const failed = this.add.image(critX, buttonY, 'failedParticle').setScale(0.5);
           this.tweens.add({
             targets: failed,
             y: buttonY - 80,
@@ -698,78 +691,10 @@ class UpgradeScene extends Phaser.Scene {
         });
       }
     });
-
-    // Add Splash Drone Upgrade button for Frank if not already active and all drone upgrades are maxed
-    critButton.on('pointerdown', () => {
-      // Always get gameScene reference first
-      const gameScene = this.scene.get('gameScene');
-      if (gameScene.bolts < 50) {
-        const unaffordable = this.add.image(critX, buttonY, 'unaffordableParticle').setScale(0.5);
-        this.tweens.add({
-          targets: unaffordable,
-          y: buttonY - 80,
-          alpha: 0,
-          duration: 1200,
-          ease: 'Cubic.easeOut',
-          onComplete: () => unaffordable.destroy()
-        });
-        return;
-      }
-      // Access GameScene and increase crit chance
-      if (gameScene.crit === 5 || gameScene.crit === 10 || gameScene.crit === 15 || gameScene.crit === 20) {
-        this.chances = Phaser.Math.Between(1, 2);
-        if (this.chances === 1) {
-          if (gameScene.crit === 5) {
-            gameScene.crit = 10;
-          } else if (gameScene.crit === 10) {
-            gameScene.crit = 15;
-          } else if (gameScene.crit === 15) {
-            gameScene.crit = 20;
-          } else if (gameScene.crit === 20) {
-            gameScene.crit = 30;
-          }
-          gameScene.bolts -= 50;
-          this.updateBoltText();
-          const successful = this.add.image(critX, buttonY, 'successParticle').setScale(0.5);
-          this.tweens.add({
-            targets: successful,
-            y: buttonY - 80,
-            alpha: 0,
-            duration: 1200,
-            ease: 'Cubic.easeOut',
-            onComplete: () => successful.destroy()
-          });
-        } else {
-          const failed = this.add.image(critX, buttonY, 'failedParticle').setScale(0.5);
-          gameScene.bolts -= 50;
-          this.tweens.add({
-            targets: failed,
-            y: buttonY - 80,
-            alpha: 0,
-            duration: 1200,
-            ease: 'Cubic.easeOut',
-            onComplete: () => failed.destroy()
-          });
-        }
-      } else {
-        // Show maxed particle effect
-        const maxed = this.add.image(critX, buttonY, 'maxedParticle').setScale(0.5);
-        this.tweens.add({
-          targets: maxed,
-          y: buttonY - 80,
-          alpha: 0,
-          duration: 1200,
-          ease: 'Cubic.easeOut',
-          onComplete: () => maxed.destroy()
-        });
-      }
-    });
-
     this.input.keyboard.on('keydown-ENTER', () => {
       this.upgradeLevel++;
       this.upgradeText.setText('Upgrade Gun\nCurrent Level: ' + this.upgradeLevel);
     });
-
     this.input.keyboard.on('keydown-ESC', () => {
       this.scene.switch('gameScene');
     });

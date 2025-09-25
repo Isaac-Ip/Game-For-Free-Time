@@ -205,21 +205,21 @@ class GameScene extends Phaser.Scene {
     }
 
     if (this.playerClass === 'arsonist') {
-        this.flameCount = 12;
-        this.flames = [];
-        const flameOrbitRadius = 250; // Increased distance from player
-        for (let i = 0; i < this.flameCount; i++) {
-          const angle = (Math.PI * 2 * i) / this.flameCount;
-          const x = this.player.x + Math.cos(angle) * flameOrbitRadius;
-          const y = this.player.y + Math.sin(angle) * flameOrbitRadius;
-          const flame = this.add.sprite(x, y, 'flame');
-          flame.setScale(0.7); // Make flames larger
-          flame.setAlpha(0.95); // Make flames more visible
-          flame.setDepth(10); // Ensure flames are above player and enemies
-          flame.orbitAngle = angle;
-          flame.lastHitEnemies = new Set();
-          this.flames.push(flame);
-        }
+      this.flameCount = 12;
+      this.flames = [];
+      const flameOrbitRadius = 250; // Increased distance from player
+      for (let i = 0; i < this.flameCount; i++) {
+        const angle = (Math.PI * 2 * i) / this.flameCount;
+        const x = this.player.x + Math.cos(angle) * flameOrbitRadius;
+        const y = this.player.y + Math.sin(angle) * flameOrbitRadius;
+        const flame = this.add.sprite(x, y, 'flame');
+        flame.setScale(0.7); // Make flames larger
+        flame.setAlpha(0.95); // Make flames more visible
+        flame.setDepth(10); // Ensure flames are above player and enemies
+        flame.orbitAngle = angle;
+        flame.lastHitEnemies = new Set();
+        this.flames.push(flame);
+      }
     }
 
     this.updateHpText();
@@ -524,11 +524,11 @@ class GameScene extends Phaser.Scene {
     if (this.isArsonist && this.flames && this.flames.length) {
       for (let i = 0; i < this.flameCount; i++) {
         // Orbit flames around player
-  const orbitSpeed = 0.090; // radians per frame (faster)
+        const orbitSpeed = 0.090; // radians per frame (faster)
         this.flames[i].orbitAngle += orbitSpeed;
-  const flameOrbitRadius = 250;
-  const x = this.player.x + Math.cos(this.flames[i].orbitAngle) * flameOrbitRadius;
-  const y = this.player.y + Math.sin(this.flames[i].orbitAngle) * flameOrbitRadius;
+        const flameOrbitRadius = 250;
+        const x = this.player.x + Math.cos(this.flames[i].orbitAngle) * flameOrbitRadius;
+        const y = this.player.y + Math.sin(this.flames[i].orbitAngle) * flameOrbitRadius;
         this.flames[i].x = x;
         this.flames[i].y = y;
         // Check collision with enemies
@@ -834,7 +834,7 @@ class GameScene extends Phaser.Scene {
       this.bulletGroup = this.bulletGroup.filter(b => b && !b._destroyed);
     }
 
-}
+  }
 }
 
 

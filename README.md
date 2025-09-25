@@ -110,5 +110,8 @@ Brice class has been buffed with double regeneration.
 New class:<br>
 Arsonist wields 12 fast orbiting flames that deal 2 dmg each. This class is for gametesters only.
 
+Ver. 1.8.1<br>
+Bug fix where crit upgrade always worked.
+
 MORE TO COME SOON!<br>
 If you want something fixed or new added, fill this out: [LINK](https://docs.google.com/forms/d/e/1FAIpQLSdBAkZc1rAzE6f18CH9MnjB5y6Eiiyr9PpKyLDDSJMIWIeGSA/viewform?usp=header/)

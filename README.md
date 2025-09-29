@@ -1,7 +1,7 @@
 # Game For Free Time
 
 It's just a game for free time.<br>
-This game is playable at: [LINK HERE](https://isaac-ip.github.io/Game-For-Free-Time/)
+This game is playable at: [LINK HERE](https://isaac-ip.github.io/OutBreak/)
 
 Ver. 1.1.0<br>
 Created base game, movements, loadup.<br>

@@ -325,6 +325,10 @@ class GameScene extends Phaser.Scene {
                 this.updateBoltText();
                 // Queue bloodstain for next frame
                 this.bloodstainQueue.push(enemyPos);
+                // 15% chance to spawn an extra enemy
+                if (Phaser.Math.Between(1, 100) <= 15) {
+                  this.createEnemy();
+                }
                 // 10% chance to spawn 2 enemies
                 if (Phaser.Math.Between(1, 10) === 1) {
                   this.createEnemy();
@@ -403,6 +407,10 @@ class GameScene extends Phaser.Scene {
             // Optionally show bolt drop effect here
             // Queue bloodstain for next frame
             this.bloodstainQueue.push(enemyPos);
+            // 15% chance to spawn an extra enemy
+            if (Phaser.Math.Between(1, 100) <= 15) {
+              this.createEnemy();
+            }
             // 10% chance to spawn 2 enemies
             if (Phaser.Math.Between(1, 10) === 1) {
               this.createEnemy();
@@ -603,6 +611,10 @@ class GameScene extends Phaser.Scene {
                 this.updateBoltText();
                 // Queue bloodstain for next frame
                 this.bloodstainQueue.push(enemyPos);
+                // 15% chance to spawn an extra enemy
+                if (Phaser.Math.Between(1, 100) <= 15) {
+                  this.createEnemy();
+                }
                 // 10% chance to spawn 2 enemies
                 if (Phaser.Math.Between(1, 10) === 1) {
                   this.createEnemy();
@@ -695,6 +707,11 @@ class GameScene extends Phaser.Scene {
                     }
                     this.updateBoltText();
                     this.bloodstainQueue.push(enemyPos);
+                    // 15% chance to spawn an extra enemy
+                    if (Phaser.Math.Between(1, 100) <= 15) {
+                      this.createEnemy();
+                    }
+                    // 10% chance to spawn 2 enemies
                     if (Phaser.Math.Between(1, 10) === 1) {
                       this.createEnemy();
                       this.createEnemy();
@@ -990,6 +1007,11 @@ class GameScene extends Phaser.Scene {
               else this.bolts += boltsDropped;
               this.updateBoltText();
               this.bloodstainQueue.push(enemyPos);
+              // 15% chance to spawn an extra enemy
+              if (Phaser.Math.Between(1, 100) <= 15) {
+                this.createEnemy();
+              }
+              // 10% chance to spawn 2 enemies
               if (Phaser.Math.Between(1, 10) === 1) {
                 this.createEnemy();
                 this.createEnemy();
@@ -1055,6 +1077,11 @@ class GameScene extends Phaser.Scene {
               else this.bolts += boltsDropped;
               this.updateBoltText();
               this.bloodstainQueue.push(enemyPos);
+              // 15% chance to spawn an extra enemy
+              if (Phaser.Math.Between(1, 100) <= 15) {
+                this.createEnemy();
+              }
+              // 10% chance to spawn 2 enemies
               if (Phaser.Math.Between(1, 10) === 1) {
                 this.createEnemy();
                 this.createEnemy();

@@ -113,13 +113,16 @@ Arsonist wields 12 fast orbiting flames that deal 2 dmg each. <font color="#ff00
 Ver. 1.8.1<br>
 Bug fix where crit upgrade always worked.
 
-Ver. 1.9.1<br>
+Ver. 1.9.0<br>
 Balance changes, with two new classes!
 
 Brice: Regeneration doubled (again)
 
 Demoman: Throw grenades by clicking the spacebar<br>
 Controller: Radiate an damaging aura while pulsing a aura wave. <font color="#ff0000">This class is for gametesters only.</font>
+
+Ver. 1.9.1<br>
+Difficulty updates: has a 15% chance to spawn another enemy.
 
 MORE TO COME SOON!<br>
 If you want something fixed or new added, fill this out: [LINK](https://docs.google.com/forms/d/e/1FAIpQLSdBAkZc1rAzE6f18CH9MnjB5y6Eiiyr9PpKyLDDSJMIWIeGSA/viewform?usp=header/)

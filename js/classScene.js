@@ -105,7 +105,13 @@ class ClassScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive();
     controllerBtn.on('pointerdown', () => {
-      this.scene.start('gameScene', { playerClass: 'controller' });
+      this.getPassword('Enter password for Controller:', (pw) => {
+        if (pw === 'idk') {
+          this.scene.start('gameScene', { playerClass: 'controller' });
+        } else {
+          this.showError('Incorrect password!');
+        }
+      });
     });
   }
 

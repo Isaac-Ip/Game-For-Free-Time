@@ -108,10 +108,18 @@ Frank class has slower drone firerate but now has splash dmg (only available whe
 Brice class has been buffed with double regeneration.
 
 New class:<br>
-Arsonist wields 12 fast orbiting flames that deal 2 dmg each. This class is for gametesters only.
+Arsonist wields 12 fast orbiting flames that deal 2 dmg each. <font color="#ff0000">This class is for gametesters only.</font>
 
 Ver. 1.8.1<br>
 Bug fix where crit upgrade always worked.
+
+Ver. 1.9.1<br>
+Balance changes, with two new classes!
+
+Brice: Regeneration doubled (again)
+
+Demoman: Throw grenades by clicking the spacebar<br>
+Controller: Radiate an damaging aura while pulsing a aura wave. <font color="#ff0000">This class is for gametesters only.</font>
 
 MORE TO COME SOON!<br>
 If you want something fixed or new added, fill this out: [LINK](https://docs.google.com/forms/d/e/1FAIpQLSdBAkZc1rAzE6f18CH9MnjB5y6Eiiyr9PpKyLDDSJMIWIeGSA/viewform?usp=header/)

@@ -15,8 +15,11 @@ class ClassScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#222');
     this.add.text(960, 100, 'Choose Your Class', { font: '64px Arial', fill: '#fff' }).setOrigin(0.5);
 
+    let startY = 300;
+    const gap = 25;
+
     // Normal class button
-    const normalBtn = this.add.text(960, 300, 'Normal', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+    const normalBtn = this.add.text(960, startY, 'Normal', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
       .setOrigin(0.5)
       .setInteractive();
     normalBtn.on('pointerdown', () => {
@@ -24,7 +27,7 @@ class ClassScene extends Phaser.Scene {
     });
 
     // Frank class button (password protected)
-    const frankBtn = this.add.text(960, 400, 'Frank (2 Drones)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+    const frankBtn = this.add.text(960, startY += 48 + gap, 'Frank (2 Drones)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
       .setOrigin(0.5)
       .setInteractive();
     frankBtn.on('pointerdown', () => {
@@ -38,7 +41,7 @@ class ClassScene extends Phaser.Scene {
     });
 
     // Brice class button (password protected)
-    const briceBtn = this.add.text(960, 500, 'Brice (Big, 200 HP)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+    const briceBtn = this.add.text(960, startY += 48 + gap, 'Brice (Big, 200 HP)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
       .setOrigin(0.5)
       .setInteractive();
     briceBtn.on('pointerdown', () => {
@@ -52,7 +55,7 @@ class ClassScene extends Phaser.Scene {
     });
 
     // Tracker class button
-    const trackerBtn = this.add.text(960, 600, 'Tracker (Homing Bullets)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+    const trackerBtn = this.add.text(960, startY += 48 + gap, 'Tracker (Homing Bullets)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
       .setOrigin(0.5)
       .setInteractive();
     trackerBtn.on('pointerdown', () => {
@@ -60,7 +63,7 @@ class ClassScene extends Phaser.Scene {
     });
 
     // Brokie class button
-    const brokieBtn = this.add.text(960, 700, 'Brokie (Double Bolts)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+    const brokieBtn = this.add.text(960, startY += 48 + gap, 'Brokie (Double Bolts)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
       .setOrigin(0.5)
       .setInteractive();
     brokieBtn.on('pointerdown', () => {
@@ -68,15 +71,15 @@ class ClassScene extends Phaser.Scene {
     });
 
     // Hunter class button
-    const hunterBtn = this.add.text(960, 800, 'Hunter (Double Dmg)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+    const hunterBtn = this.add.text(960, startY += 48 + gap, 'Hunter (Double Dmg)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
       .setOrigin(0.5)
       .setInteractive();
     hunterBtn.on('pointerdown', () => {
       this.scene.start('gameScene', { playerClass: 'hunter' });
     });
 
-    // Hunter class button
-    const arsonistBtn = this.add.text(960, 900, 'Arsonist (Orbiting Flames)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+    // Arsonist class button
+    const arsonistBtn = this.add.text(960, startY += 48 + gap, 'Arsonist (Orbiting Flames)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
       .setOrigin(0.5)
       .setInteractive();
     arsonistBtn.on('pointerdown', () => {
@@ -87,6 +90,22 @@ class ClassScene extends Phaser.Scene {
           this.showError('Incorrect password!');
         }
       });
+    });
+
+    // Demoman class button
+    const demomanBtn = this.add.text(960, startY += 48 + gap, 'Demoman (Throws Grenade on Right Click)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+      .setOrigin(0.5)
+      .setInteractive();
+    demomanBtn.on('pointerdown', () => {
+      this.scene.start('gameScene', { playerClass: 'demoman' });
+    });
+
+    // Controller class button
+    const controllerBtn = this.add.text(960, startY += 48 + gap, 'Controller (Aura & Aurawave)', { font: '48px Arial', fill: '#fff', backgroundColor: '#444' })
+      .setOrigin(0.5)
+      .setInteractive();
+    controllerBtn.on('pointerdown', () => {
+      this.scene.start('gameScene', { playerClass: 'controller' });
     });
   }
 

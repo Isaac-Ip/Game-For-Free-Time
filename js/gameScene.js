@@ -61,6 +61,7 @@ class GameScene extends Phaser.Scene {
     this.flame = null;
     this.bulletGroup = [];
     this.enemyGroup = [];
+    this.grenade = null;
     this.bloodstain = null;
     this.bloodstainQueue = [];
     this.droneDmg = 1; // Drone upgrade damage
@@ -74,6 +75,12 @@ class GameScene extends Phaser.Scene {
     this.briceDef = 0;
     this.lastBriceRegen = 0;
     this.splashDroneUpgrade = false; // Track if splash drone upgrade is active
+    // Controller class aura/aurawave
+    this.controllerAura = null;
+    this.controllerAuraRadius = 250 * 1.5; // 1.5x bigger
+    this.controllerAuraDamageTimer = 0;
+    this.controllerAurawaveTimer = 0;
+    this.controllerAurawaves = [];
   }
 
   /**
@@ -115,6 +122,7 @@ class GameScene extends Phaser.Scene {
     this.load.image('armored-enemy-hurt', './assets/armored-zombie-hurt.png')
     this.load.image('armored-enemy', './assets/armored-zombie.png')
     this.load.image('bullet', './assets/bullet.png')
+    this.load.image('grenade', './assets/grenade.png')
     this.load.image('flame', './assets/flame.png')
     this.load.image('bloodstain', './assets/bloodstain.png')
     this.load.image('crit-particle', './assets/crit-particle.png')
@@ -144,6 +152,10 @@ class GameScene extends Phaser.Scene {
     this.isHunter = (this.playerClass === 'hunter');
     // Arsonist class: has orbiting flames
     this.isArsonist = (this.playerClass === 'arsonist');
+    // Demoman class: throws grenade on right click
+    this.isDemoman = (this.playerClass === 'demoman');
+    // Controller class: mark for aura
+    this.isController = (this.playerClass === 'controller');
     console.log('Game Scene create')
     this.cameras.main.setBackgroundColor('#222');
     this.background = this.add.sprite(0, 0, 'game-scene-background');
@@ -220,6 +232,21 @@ class GameScene extends Phaser.Scene {
         flame.lastHitEnemies = new Set();
         this.flames.push(flame);
       }
+    }
+
+    // Controller class: spawn aura
+    if (this.isController) {
+      // Aura is a transparent circle sprite
+      this.controllerAura = this.add.graphics();
+      this.controllerAura.fillStyle(0x00ffff, 0.25);
+      this.controllerAura.fillCircle(0, 0, this.controllerAuraRadius); // uses new radius
+      this.controllerAura.x = this.player.x;
+      this.controllerAura.y = this.player.y;
+      this.controllerAura.setDepth(5);
+      // For collision, just use distance checks
+      this.controllerAuraDamageTimer = 0;
+      this.controllerAurawaveTimer = 0;
+      this.controllerAurawaves = [];
     }
 
     this.updateHpText();
@@ -499,6 +526,7 @@ class GameScene extends Phaser.Scene {
       }
       // --- End continuous firing ---
 
+
       // Stop firing on pointerup
       if (!this.pointerUpListenerAdded) {
         this.input.on('pointerup', () => {
@@ -593,6 +621,96 @@ class GameScene extends Phaser.Scene {
         }
       }
     }
+      // Demoman: throw grenade on space bar (moved from create)
+      if (this.isDemoman) {
+        if (!this._demomanGrenadeCooldown) this._demomanGrenadeCooldown = 0;
+        const spaceKey = this.input.keyboard.addKey('SPACE');
+        if (spaceKey.isDown && time > this._demomanGrenadeCooldown) {
+          const pointer = this.input.activePointer;
+          const dx = pointer.x - this.player.x;
+          const dy = pointer.y - this.player.y;
+          const angle = Math.atan2(dy, dx);
+          const grenadeOffset = 120;
+          const grenadeX = this.player.x + Math.cos(angle) * grenadeOffset;
+          const grenadeY = this.player.y + Math.sin(angle) * grenadeOffset;
+          const grenade = this.matter.add.sprite(grenadeX, grenadeY, 'grenade');
+          grenade.setScale(0.7);
+          grenade.setBody({ type: 'circle', radius: grenade.width * 0.35 });
+          grenade.setIgnoreGravity(false);
+          grenade.body.collisionFilter.group = -1;
+          grenade.isGrenade = true;
+          // Give grenade a velocity
+    const grenadeSpeed = 12;
+    grenade.setVelocity(Math.cos(angle) * grenadeSpeed, Math.sin(angle) * grenadeSpeed);
+          grenade.setRotation(angle);
+          // Grenade explodes after 1 second
+          this.time.delayedCall(1000, () => {
+            if (!grenade._destroyed) {
+              // Show explode effect
+              const explodeSprite = this.add.sprite(grenade.x, grenade.y, 'explode');
+              explodeSprite.setScale(1.5);
+              explodeSprite.setAlpha(1.5);
+              this.tweens.add({
+                targets: explodeSprite,
+                alpha: 0,
+                duration: 350,
+                onComplete: () => explodeSprite.destroy()
+              });
+              // Deal 8 damage to all enemies in radius (e.g. 180px)
+              const splashRadius = 180;
+              this.enemyGroup.forEach(enemy => {
+                if (!enemy || enemy._destroyed) return;
+                const dx = enemy.x - grenade.x;
+                const dy = enemy.y - grenade.y;
+                if (Math.sqrt(dx * dx + dy * dy) <= splashRadius) {
+                  enemy.hp = (enemy.hp || 1) - 8;
+                  // Hurt texture logic
+                  if (enemy.isArmored) {
+                    if (enemy.hp <= 5) {
+                      enemy.setTexture('armored-enemy-hurt');
+                      enemy.setScale(0.55);
+                      enemy.setOrigin(0.5);
+                    }
+                  } else {
+                    if (enemy.hp <= 2) {
+                      enemy.setTexture('enemy-hurt');
+                      enemy.setScale(0.5);
+                      enemy.setOrigin(0.5);
+                    }
+                  }
+                  if (enemy.hp <= 0) {
+                    const enemyPos = { x: enemy.x, y: enemy.y };
+                    this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
+                    enemy.destroy();
+                    let boltsDropped;
+                    if (enemy.isArmored) {
+                      boltsDropped = Phaser.Math.Between(11, 14);
+                    } else {
+                      boltsDropped = Phaser.Math.Between(3, 7);
+                    }
+                    if (this.isBrokie) {
+                      this.bolts += boltsDropped * 2;
+                    } else {
+                      this.bolts += boltsDropped;
+                    }
+                    this.updateBoltText();
+                    this.bloodstainQueue.push(enemyPos);
+                    if (Phaser.Math.Between(1, 10) === 1) {
+                      this.createEnemy();
+                      this.createEnemy();
+                    } else {
+                      this.createEnemy();
+                    }
+                  }
+                }
+              });
+              grenade.destroy();
+            }
+          });
+    // Add cooldown so grenade only fires once per key press
+    this._demomanGrenadeCooldown = time + (400 / 1.5); // 1.5x faster cooldown
+        }
+      }
     // Tracker class: smoothly home bullets toward nearest enemy
     if (this.isTracker && this.bulletGroup && this.enemyGroup) {
       for (const bullet of this.bulletGroup) {
@@ -800,7 +918,7 @@ class GameScene extends Phaser.Scene {
     if (this.playerClass === 'brice' && this.briceRegen > 0 && this.player.hp > 0) {
       if (!this._briceRegenBuffer) this._briceRegenBuffer = 0;
       // Regen rate: 0.4 * briceRegen per second
-      const regenRate = Math.min(this.briceRegen * 0.8, 4);
+      const regenRate = Math.min(this.briceRegen * 1.6, 8);
       this._briceRegenBuffer += regenRate * (delta / 1000);
       if (this._briceRegenBuffer >= 0.1) {
         const healAmt = Math.floor(this._briceRegenBuffer * 10) / 10;
@@ -833,6 +951,145 @@ class GameScene extends Phaser.Scene {
       // Clean up bulletGroup array
       this.bulletGroup = this.bulletGroup.filter(b => b && !b._destroyed);
     }
+
+    // Controller class: aura logic
+    if (this.isController && this.controllerAura) {
+      // Aura follows player
+      this.controllerAura.x = this.player.x;
+      this.controllerAura.y = this.player.y;
+
+      // Damage enemies inside aura every 0.5s, slow them
+      this.controllerAuraDamageTimer += delta;
+      if (this.controllerAuraDamageTimer >= 500) {
+        for (const enemy of this.enemyGroup) {
+          if (!enemy || enemy._destroyed || enemy.hp <= 0) continue;
+          const dx = enemy.x - this.player.x;
+          const dy = enemy.y - this.player.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= this.controllerAuraRadius) {
+            // Damage
+            enemy.hp = (enemy.hp || 1) - 1;
+            // Slow enemy
+            enemy._controllerSlowed = true;
+            // Hurt texture logic
+            if (enemy.isArmored && enemy.hp <= 5) {
+              enemy.setTexture('armored-enemy-hurt');
+              enemy.setScale(0.55);
+              enemy.setOrigin(0.5);
+            } else if (!enemy.isArmored && enemy.hp <= 2) {
+              enemy.setTexture('enemy-hurt');
+              enemy.setScale(0.5);
+              enemy.setOrigin(0.5);
+            }
+            if (enemy.hp <= 0) {
+              const enemyPos = { x: enemy.x, y: enemy.y };
+              this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
+              enemy.destroy();
+              let boltsDropped = enemy.isArmored ? Phaser.Math.Between(11, 14) : Phaser.Math.Between(3, 7);
+              if (this.isBrokie) this.bolts += boltsDropped * 2;
+              else this.bolts += boltsDropped;
+              this.updateBoltText();
+              this.bloodstainQueue.push(enemyPos);
+              if (Phaser.Math.Between(1, 10) === 1) {
+                this.createEnemy();
+                this.createEnemy();
+              } else {
+                this.createEnemy();
+              }
+            }
+          } else {
+            enemy._controllerSlowed = false;
+          }
+        }
+        this.controllerAuraDamageTimer = 0;
+      }
+
+      // Aurawave pulse every 1.5s
+      this.controllerAurawaveTimer += delta;
+      if (this.controllerAurawaveTimer >= 1500) {
+        // Create aurawave sprite (use graphics for now)
+        const aurawave = this.add.graphics();
+        aurawave.x = this.player.x;
+        aurawave.y = this.player.y;
+        aurawave._radius = 0;
+        aurawave._maxRadius = this.controllerAuraRadius * 1.5;
+        aurawave._damageDone = new Set();
+        aurawave.setDepth(6);
+        this.controllerAurawaves.push(aurawave);
+        this.controllerAurawaveTimer = 0;
+      }
+
+      // Update and expand aurawaves
+      for (const aurawave of this.controllerAurawaves) {
+        // Make aurawave last longer by expanding more slowly (duration: 4s instead of 3s)
+        aurawave._radius += (delta / 5000) * aurawave._maxRadius;
+        aurawave.clear();
+        aurawave.fillStyle(0x00ffff, 0.15);
+        aurawave.fillCircle(0, 0, aurawave._radius);
+        // Damage enemies hit by wave (only once per wave)
+        for (const enemy of this.enemyGroup) {
+          if (!enemy || enemy._destroyed || enemy.hp <= 0) continue;
+          if (aurawave._damageDone.has(enemy)) continue;
+          const dx = enemy.x - aurawave.x;
+          const dy = enemy.y - aurawave.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= aurawave._radius) {
+            enemy.hp = (enemy.hp || 1) - 3;
+            aurawave._damageDone.add(enemy);
+            // Hurt texture logic
+            if (enemy.isArmored && enemy.hp <= 5) {
+              enemy.setTexture('armored-enemy-hurt');
+              enemy.setScale(0.55);
+              enemy.setOrigin(0.5);
+            } else if (!enemy.isArmored && enemy.hp <= 2) {
+              enemy.setTexture('enemy-hurt');
+              enemy.setScale(0.5);
+              enemy.setOrigin(0.5);
+            }
+            if (enemy.hp <= 0) {
+              const enemyPos = { x: enemy.x, y: enemy.y };
+              this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
+              enemy.destroy();
+              let boltsDropped = enemy.isArmored ? Phaser.Math.Between(11, 14) : Phaser.Math.Between(3, 7);
+              if (this.isBrokie) this.bolts += boltsDropped * 2;
+              else this.bolts += boltsDropped;
+              this.updateBoltText();
+              this.bloodstainQueue.push(enemyPos);
+              if (Phaser.Math.Between(1, 10) === 1) {
+                this.createEnemy();
+                this.createEnemy();
+              } else {
+                this.createEnemy();
+              }
+            }
+          }
+        }
+      }
+      // Remove finished aurawaves
+      this.controllerAurawaves = this.controllerAurawaves.filter(aw => {
+        if (aw._radius >= aw._maxRadius) {
+          aw.destroy();
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // Enemy movement (add controller slow logic)
+    this.enemyGroup.forEach((enemy) => {
+      if (!enemy || enemy._destroyed) return;
+      const dx = this.player.x - enemy.x;
+      const dy = this.player.y - enemy.y;
+      const angle = Math.atan2(dy, dx);
+      // Controller aura slow
+      let speedMod = 1;
+      if (enemy._controllerSlowed) speedMod = 0.5;
+      if (enemy.isArmored) {
+        enemy.setVelocity(Math.cos(angle) * 1.5 * speedMod, Math.sin(angle) * 1.5 * speedMod);
+      } else {
+        enemy.setVelocity(Math.cos(angle) * 2 * speedMod, Math.sin(angle) * 2 * speedMod);
+      }
+    });
 
   }
 }

@@ -113,6 +113,18 @@ class ClassScene extends Phaser.Scene {
         }
       });
     });
+
+    // Add "Builder" class button/option
+    const builderButton = this.add.text(960, startY += 48 + gap, 'Builder', {
+      font: '48px Arial',
+      fill: '#ffcc00',
+      align: 'center',
+      backgroundColor: '#333'
+    }).setOrigin(0.5, 0.5).setInteractive();
+
+    builderButton.on('pointerdown', () => {
+      this.scene.start('gameScene', { playerClass: 'builder' });
+    });
   }
 
 

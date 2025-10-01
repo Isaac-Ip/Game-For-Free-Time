@@ -81,6 +81,11 @@ class GameScene extends Phaser.Scene {
     this.controllerAuraDamageTimer = 0;
     this.controllerAurawaveTimer = 0;
     this.controllerAurawaves = [];
+    this.wallGroup = [];
+    // Wall duration upgrade state
+    this.wallDurationUpgrade = 0; // 0: 5s, 1: 10s, 2: 30s, 3: 60s, 4: forever
+    this.wallDurations = [5000, 10000, 30000, 60000, -1];
+    this.wallUpgradeButton = null;
   }
 
   /**
@@ -104,6 +109,7 @@ class GameScene extends Phaser.Scene {
     this.droneDmg = 1;
     this.droneFirerate = 1000;
     this.droneSplash = 0;
+    this.duration = 5000;
   }
 
   /**
@@ -156,6 +162,12 @@ class GameScene extends Phaser.Scene {
     this.isDemoman = (this.playerClass === 'demoman');
     // Controller class: mark for aura
     this.isController = (this.playerClass === 'controller');
+    // Builder class: can build walls
+    this.isBuilder = (this.playerClass === 'builder');
+    // Add E key for builder wall placement (ensure this is set!)
+    if (this.isBuilder) {
+      this.keyEObj = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    }
     console.log('Game Scene create')
     this.cameras.main.setBackgroundColor('#222');
     this.background = this.add.sprite(0, 0, 'game-scene-background');
@@ -489,10 +501,11 @@ class GameScene extends Phaser.Scene {
             bullet.setScale(0.5);
             bullet.setBody({ type: 'rectangle', width: bullet.width * 0.5, height: bullet.height * 0.5 });
             bullet.setIgnoreGravity(true);
-            // Set bullet collision filter to avoid player
             bullet.body.collisionFilter.group = -1;
             bullet.isBullet = true;
             bullet.isCrit = isCrit;
+            // Ignore wall collisions
+            bullet.body.collisionFilter.mask &= ~0x0008;
             // Tracker class: mark bullet for homing
             if (this.isTracker) bullet.isHoming = true;
             this.bulletGroup.push(bullet);
@@ -867,6 +880,8 @@ class GameScene extends Phaser.Scene {
               bullet.isDrone = true;
               bullet.isSplash = true;
               bullet.droneDmg = this.droneDmg;
+              // Ignore wall collisions
+              bullet.body.collisionFilter.mask &= ~0x0008;
               this.bulletGroup.push(bullet);
               const bulletSpeed = 25;
               bullet.setVelocity(Math.cos(droneAngle) * bulletSpeed, Math.sin(droneAngle) * bulletSpeed);
@@ -886,6 +901,8 @@ class GameScene extends Phaser.Scene {
               bullet.isBullet = true;
               bullet.isDrone = true;
               bullet.droneDmg = this.droneDmg;
+              // Ignore wall collisions
+              bullet.body.collisionFilter.mask &= ~0x0008;
               this.bulletGroup.push(bullet);
               const bulletSpeed = 25;
               bullet.setVelocity(Math.cos(droneAngle) * bulletSpeed, Math.sin(droneAngle) * bulletSpeed);
@@ -1118,8 +1135,106 @@ class GameScene extends Phaser.Scene {
       }
     });
 
+    // Builder: place wall with E key
+    if (this.isBuilder && this.keyEObj && Phaser.Input.Keyboard.JustDown(this.keyEObj)) {
+      if (this.bolts >= 300) {
+        this.bolts -= 300;
+        this.updateBoltText();
+        // Place wall between player and cursor, flat side faces the cursor
+        const pointer = this.input.activePointer;
+        const dx = pointer.x - this.player.x;
+        const dy = pointer.y - this.player.y;
+        // Wall's flat side faces the cursor: rotate by angle + Math.PI/2
+        const angle = Math.atan2(dy, dx) + Math.PI / 2;
+        // Increase wall spawn distance (e.g. 240 instead of 120)
+        const wallDistance = 240;
+        const wallLength = 240;
+        const wallThickness = 40;
+        const wallX = this.player.x + Math.cos(angle - Math.PI / 2) * wallDistance;
+        const wallY = this.player.y + Math.sin(angle - Math.PI / 2) * wallDistance;
+        const wallBody = this.matter.add.rectangle(wallX, wallY, wallLength, wallThickness, {
+          isStatic: true,
+          angle: angle,
+          label: 'wall',
+          collisionFilter: {
+            category: 0x0008,
+            mask: 0x0001 | 0x0002
+          }
+        });
+        const wallSprite = this.add.rectangle(wallX, wallY, wallLength, wallThickness, 0x888888, 1);
+        wallSprite.setDepth(20);
+        wallSprite.setStrokeStyle(4, 0x222222, 1);
+        wallSprite.setAlpha(0.85);
+        wallSprite.rotation = angle;
+        wallSprite._wallBody = wallBody;
+        this.wallGroup.push(wallSprite);
+        // Wall duration based on upgrade
+        let wallDuration = 5000;
+        if (typeof this.wallDurationUpgrade === 'number' && Array.isArray(this.wallDurations)) {
+          wallDuration = this.wallDurations[this.wallDurationUpgrade];
+        }
+        if (wallDuration > 0) {
+          this.time.delayedCall(wallDuration, () => {
+            this.matter.world.remove(wallBody);
+            wallSprite.destroy();
+          });
+        }
+        // If wallDuration is -1 (forever), do not destroy
+      }
+    }
+    // Sync wall sprites to their bodies
+    if (this.wallGroup && this.wallGroup.length) {
+      for (const wallSprite of this.wallGroup) {
+        if (wallSprite._wallBody) {
+          wallSprite.x = wallSprite._wallBody.position.x;
+          wallSprite.y = wallSprite._wallBody.position.y;
+          wallSprite.rotation = wallSprite._wallBody.angle;
+        }
+      }
+      this.wallGroup = this.wallGroup.filter(w => w.active && w._wallBody);
+    }
+
+    // --- Bullet/wall collision filter: allow bullets to pass through walls ---
+    // This is handled by setting bullet mask to not collide with wall category (0x0008)
+    // When creating bullets, add:
+    // bullet.body.collisionFilter.mask = 0x0002 | 0x0004; // enemy & drone, but not wall
+
+    // Patch bullet creation to ensure bullets ignore walls:
+    // (Find all bullet creation and add this after setBody)
+    // bullet.body.collisionFilter.mask &= ~0x0008;
+
+    // Example for main gun bullets:
+    // bullet.setBody({ ... });
+    // bullet.body.collisionFilter.mask &= ~0x0008;
+
+    // Example for drone bullets:
+    // bullet.setBody({ ... });
+    // bullet.body.collisionFilter.mask &= ~0x0008;
+
+    // Example for splash drone bullets:
+    // bullet.setBody({ ... });
+    // bullet.body.collisionFilter.mask &= ~0x0008;
+
+    // ...existing code...
   }
 }
 
+// --- Patch bullet creation to ignore wall collisions ---
+// Find all bullet creation and add this after setBody:
+    // bullet.body.collisionFilter.mask &= ~0x0008;
+
+// Example for main gun bullets:
+    // bullet.setBody({ ... });
+    // bullet.body.collisionFilter.mask &= ~0x0008;
+
+// Example for drone bullets:
+    // bullet.setBody({ ... });
+    // bullet.body.collisionFilter.mask &= ~0x0008;
+
+// Example for splash drone bullets:
+    // bullet.setBody({ ... });
+    // bullet.body.collisionFilter.mask &= ~0x0008;
+
+// ...existing code...
 
 export default GameScene

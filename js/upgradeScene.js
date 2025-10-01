@@ -269,6 +269,81 @@ class UpgradeScene extends Phaser.Scene {
       font: '32px Arial', fill: '#fff', align: 'center'
     }).setOrigin(0.5);
 
+    // --- Wall Duration Upgrade Button for Builder class ---
+    if (gameScene && gameScene.playerClass === 'builder') {
+      const wallUpgradeY = buttonY + 180;
+      const wallUpgradeButton = this.add.image(sprayX, wallUpgradeY, 'upgrade').setInteractive().setScale(buttonScale);
+      this.add.text(sprayX, wallUpgradeY + labelOffset, 'Upgrade Wall Duration', {
+        font: '32px Arial', fill: '#fff', align: 'center'
+      }).setOrigin(0.5);
+
+      // Show static label below the button
+      this.add.text(sprayX, wallUpgradeY + labelOffset + 40, 'Wall Duration', {
+        font: '28px Arial', fill: '#ff0', align: 'center'
+      }).setOrigin(0.5);
+
+      const scene = this;
+      function updateWallUpgradeButton() {
+        wallUpgradeButton.setAlpha(1);
+        wallUpgradeButton.setTint(0xffffff);
+        if (gameScene.wallDurationUpgrade >= 4) {
+          wallUpgradeButton.disableInteractive();
+          wallUpgradeButton.setTint(0x888888);
+        } else {
+          wallUpgradeButton.setInteractive();
+        }
+      }
+      updateWallUpgradeButton();
+
+      wallUpgradeButton.on('pointerover', function () {
+        this.setAlpha(0.85);
+      });
+      wallUpgradeButton.on('pointerout', function () {
+        this.setAlpha(1);
+      });
+
+      wallUpgradeButton.on('pointerdown', function () {
+        if (gameScene.wallDurationUpgrade < 4) {
+          if (gameScene.bolts < 500) {
+            const unaffordable = scene.add.image(sprayX, wallUpgradeY, 'unaffordableParticle').setScale(0.5);
+            scene.tweens.add({
+              targets: unaffordable,
+              y: wallUpgradeY - 80,
+              alpha: 0,
+              duration: 1200,
+              ease: 'Cubic.easeOut',
+              onComplete: () => unaffordable.destroy()
+            });
+            return;
+          }
+          gameScene.wallDurationUpgrade++;
+          gameScene.bolts -= 500;
+          scene.updateBoltText && scene.updateBoltText();
+          updateWallUpgradeButton();
+          const successful = scene.add.image(sprayX, wallUpgradeY, 'successParticle').setScale(0.5);
+          scene.tweens.add({
+            targets: successful,
+            y: wallUpgradeY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => successful.destroy()
+          });
+        } else {
+          updateWallUpgradeButton();
+          const maxed = scene.add.image(sprayX, wallUpgradeY, 'maxedParticle').setScale(0.5);
+          scene.tweens.add({
+            targets: maxed,
+            y: wallUpgradeY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => maxed.destroy()
+          });
+        }
+      });
+    }
+
     const ammoButton = this.add.image(ammoX, buttonY, 'upgrade').setInteractive().setScale(buttonScale);
     this.add.text(ammoX, buttonY + labelOffset, 'Upgrade Ammo', {
       font: '32px Arial', fill: '#fff', align: 'center'
@@ -691,6 +766,82 @@ class UpgradeScene extends Phaser.Scene {
         });
       }
     });
+
+    // --- Wall Duration Upgrade Button for Builder class ---
+    if (gameScene && gameScene.playerClass === 'builder') {
+      const wallUpgradeY = buttonY + 180;
+      const wallUpgradeButton = this.add.image(sprayX, wallUpgradeY, 'upgrade').setInteractive().setScale(buttonScale);
+      this.add.text(sprayX, wallUpgradeY + labelOffset, 'Upgrade Wall Duration', {
+        font: '32px Arial', fill: '#fff', align: 'center'
+      }).setOrigin(0.5);
+
+      // Show static label below the button
+      this.add.text(sprayX, wallUpgradeY + labelOffset + 40, 'Wall Duration', {
+        font: '28px Arial', fill: '#ff0', align: 'center'
+      }).setOrigin(0.5);
+
+      const scene = this;
+      function updateWallUpgradeButton() {
+        wallUpgradeButton.setAlpha(1);
+        wallUpgradeButton.setTint(0xffffff);
+        if (gameScene.wallDurationUpgrade >= 4) {
+          wallUpgradeButton.disableInteractive();
+          wallUpgradeButton.setTint(0x888888);
+        } else {
+          wallUpgradeButton.setInteractive();
+        }
+      }
+      updateWallUpgradeButton();
+
+      wallUpgradeButton.on('pointerover', function () {
+        this.setAlpha(0.85);
+      });
+      wallUpgradeButton.on('pointerout', function () {
+        this.setAlpha(1);
+      });
+
+      wallUpgradeButton.on('pointerdown', function () {
+        if (gameScene.wallDurationUpgrade < 4) {
+          if (gameScene.bolts < 500) {
+            const unaffordable = scene.add.image(sprayX, wallUpgradeY, 'unaffordableParticle').setScale(0.5);
+            scene.tweens.add({
+              targets: unaffordable,
+              y: wallUpgradeY - 80,
+              alpha: 0,
+              duration: 1200,
+              ease: 'Cubic.easeOut',
+              onComplete: () => unaffordable.destroy()
+            });
+            return;
+          }
+          gameScene.wallDurationUpgrade++;
+          gameScene.bolts -= 500;
+          scene.updateBoltText && scene.updateBoltText();
+          updateWallUpgradeButton();
+          const successful = scene.add.image(sprayX, wallUpgradeY, 'successParticle').setScale(0.5);
+          scene.tweens.add({
+            targets: successful,
+            y: wallUpgradeY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => successful.destroy()
+          });
+        } else {
+          updateWallUpgradeButton();
+          const maxed = scene.add.image(sprayX, wallUpgradeY, 'maxedParticle').setScale(0.5);
+          scene.tweens.add({
+            targets: maxed,
+            y: wallUpgradeY - 80,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => maxed.destroy()
+          });
+        }
+      });
+    }
+
     this.input.keyboard.on('keydown-ENTER', () => {
       this.upgradeLevel++;
       this.upgradeText.setText('Upgrade Gun\nCurrent Level: ' + this.upgradeLevel);

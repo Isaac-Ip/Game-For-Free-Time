@@ -268,6 +268,14 @@ class GameScene extends Phaser.Scene {
     this.createEnemy();
     console.log('Enemy group after first spawn:', this.enemyGroup);
 
+    // Timer in top right corner
+    this.startTime = this.time.now;
+    this.timerText = this.add.text(1920 - 32, 32, '00:00', {
+      font: '64px Arial',
+      fill: '#fff',
+      align: 'right'
+    }).setOrigin(1, 0);
+
     // Matter.js collision event
     this.matter.world.on('collisionstart', (event) => {
       event.pairs.forEach((pair) => {
@@ -451,6 +459,22 @@ class GameScene extends Phaser.Scene {
           this.player.hp -= dmg;
           this.player.hp = Math.round(this.player.hp * 10) / 10;
           if (this.player.hp <= 0) {
+            // When ending the game (e.g. before switching to deathScene)
+            // Add this where you handle player death:
+            const elapsed = Math.floor((this.time.now - this.startTime) / 1000);
+            let prev = localStorage.getItem('highScoreData');
+            let prevSeconds = 0;
+            if (prev) {
+              try {
+                prevSeconds = JSON.parse(prev).seconds || 0;
+              } catch (e) { }
+            }
+            if (elapsed > prevSeconds) {
+              localStorage.setItem('highScoreData', JSON.stringify({
+                seconds: elapsed,
+                playerClass: this.playerClass
+              }));
+            }
             this.scene.start('deathScene');
           }
         }
@@ -646,101 +670,101 @@ class GameScene extends Phaser.Scene {
         }
       }
     }
-      // Demoman: throw grenade on space bar (moved from create)
-      if (this.isDemoman) {
-        if (!this._demomanGrenadeCooldown) this._demomanGrenadeCooldown = 0;
-        const spaceKey = this.input.keyboard.addKey('SPACE');
-        if (spaceKey.isDown && time > this._demomanGrenadeCooldown) {
-          const pointer = this.input.activePointer;
-          const dx = pointer.x - this.player.x;
-          const dy = pointer.y - this.player.y;
-          const angle = Math.atan2(dy, dx);
-          const grenadeOffset = 120;
-          const grenadeX = this.player.x + Math.cos(angle) * grenadeOffset;
-          const grenadeY = this.player.y + Math.sin(angle) * grenadeOffset;
-          const grenade = this.matter.add.sprite(grenadeX, grenadeY, 'grenade');
-          grenade.setScale(0.7);
-          grenade.setBody({ type: 'circle', radius: grenade.width * 0.35 });
-          grenade.setIgnoreGravity(false);
-          grenade.body.collisionFilter.group = -1;
-          grenade.isGrenade = true;
-          // Give grenade a velocity
-    const grenadeSpeed = 12;
-    grenade.setVelocity(Math.cos(angle) * grenadeSpeed, Math.sin(angle) * grenadeSpeed);
-          grenade.setRotation(angle);
-          // Grenade explodes after 1 second
-          this.time.delayedCall(1000, () => {
-            if (!grenade._destroyed) {
-              // Show explode effect
-              const explodeSprite = this.add.sprite(grenade.x, grenade.y, 'explode');
-              explodeSprite.setScale(1.5);
-              explodeSprite.setAlpha(1.5);
-              this.tweens.add({
-                targets: explodeSprite,
-                alpha: 0,
-                duration: 350,
-                onComplete: () => explodeSprite.destroy()
-              });
-              // Deal 8 damage to all enemies in radius (e.g. 180px)
-              const splashRadius = 180;
-              this.enemyGroup.forEach(enemy => {
-                if (!enemy || enemy._destroyed) return;
-                const dx = enemy.x - grenade.x;
-                const dy = enemy.y - grenade.y;
-                if (Math.sqrt(dx * dx + dy * dy) <= splashRadius) {
-                  enemy.hp = (enemy.hp || 1) - 8;
-                  // Hurt texture logic
-                  if (enemy.isArmored) {
-                    if (enemy.hp <= 5) {
-                      enemy.setTexture('armored-enemy-hurt');
-                      enemy.setScale(0.55);
-                      enemy.setOrigin(0.5);
-                    }
-                  } else {
-                    if (enemy.hp <= 2) {
-                      enemy.setTexture('enemy-hurt');
-                      enemy.setScale(0.5);
-                      enemy.setOrigin(0.5);
-                    }
+    // Demoman: throw grenade on space bar (moved from create)
+    if (this.isDemoman) {
+      if (!this._demomanGrenadeCooldown) this._demomanGrenadeCooldown = 0;
+      const spaceKey = this.input.keyboard.addKey('SPACE');
+      if (spaceKey.isDown && time > this._demomanGrenadeCooldown) {
+        const pointer = this.input.activePointer;
+        const dx = pointer.x - this.player.x;
+        const dy = pointer.y - this.player.y;
+        const angle = Math.atan2(dy, dx);
+        const grenadeOffset = 120;
+        const grenadeX = this.player.x + Math.cos(angle) * grenadeOffset;
+        const grenadeY = this.player.y + Math.sin(angle) * grenadeOffset;
+        const grenade = this.matter.add.sprite(grenadeX, grenadeY, 'grenade');
+        grenade.setScale(0.7);
+        grenade.setBody({ type: 'circle', radius: grenade.width * 0.35 });
+        grenade.setIgnoreGravity(false);
+        grenade.body.collisionFilter.group = -1;
+        grenade.isGrenade = true;
+        // Give grenade a velocity
+        const grenadeSpeed = 12;
+        grenade.setVelocity(Math.cos(angle) * grenadeSpeed, Math.sin(angle) * grenadeSpeed);
+        grenade.setRotation(angle);
+        // Grenade explodes after 1 second
+        this.time.delayedCall(1000, () => {
+          if (!grenade._destroyed) {
+            // Show explode effect
+            const explodeSprite = this.add.sprite(grenade.x, grenade.y, 'explode');
+            explodeSprite.setScale(1.5);
+            explodeSprite.setAlpha(1.5);
+            this.tweens.add({
+              targets: explodeSprite,
+              alpha: 0,
+              duration: 350,
+              onComplete: () => explodeSprite.destroy()
+            });
+            // Deal 8 damage to all enemies in radius (e.g. 180px)
+            const splashRadius = 180;
+            this.enemyGroup.forEach(enemy => {
+              if (!enemy || enemy._destroyed) return;
+              const dx = enemy.x - grenade.x;
+              const dy = enemy.y - grenade.y;
+              if (Math.sqrt(dx * dx + dy * dy) <= splashRadius) {
+                enemy.hp = (enemy.hp || 1) - 8;
+                // Hurt texture logic
+                if (enemy.isArmored) {
+                  if (enemy.hp <= 5) {
+                    enemy.setTexture('armored-enemy-hurt');
+                    enemy.setScale(0.55);
+                    enemy.setOrigin(0.5);
                   }
-                  if (enemy.hp <= 0) {
-                    const enemyPos = { x: enemy.x, y: enemy.y };
-                    this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
-                    enemy.destroy();
-                    let boltsDropped;
-                    if (enemy.isArmored) {
-                      boltsDropped = Phaser.Math.Between(11, 14);
-                    } else {
-                      boltsDropped = Phaser.Math.Between(3, 7);
-                    }
-                    if (this.isBrokie) {
-                      this.bolts += boltsDropped * 2;
-                    } else {
-                      this.bolts += boltsDropped;
-                    }
-                    this.updateBoltText();
-                    this.bloodstainQueue.push(enemyPos);
-                    // 15% chance to spawn an extra enemy
-                    if (Phaser.Math.Between(1, 100) <= 15) {
-                      this.createEnemy();
-                    }
-                    // 10% chance to spawn 2 enemies
-                    if (Phaser.Math.Between(1, 10) === 1) {
-                      this.createEnemy();
-                      this.createEnemy();
-                    } else {
-                      this.createEnemy();
-                    }
+                } else {
+                  if (enemy.hp <= 2) {
+                    enemy.setTexture('enemy-hurt');
+                    enemy.setScale(0.5);
+                    enemy.setOrigin(0.5);
                   }
                 }
-              });
-              grenade.destroy();
-            }
-          });
-    // Add cooldown so grenade only fires once per key press
-    this._demomanGrenadeCooldown = time + (400 / 1.5); // 1.5x faster cooldown
-        }
+                if (enemy.hp <= 0) {
+                  const enemyPos = { x: enemy.x, y: enemy.y };
+                  this.enemyGroup = this.enemyGroup.filter(e => e !== enemy);
+                  enemy.destroy();
+                  let boltsDropped;
+                  if (enemy.isArmored) {
+                    boltsDropped = Phaser.Math.Between(11, 14);
+                  } else {
+                    boltsDropped = Phaser.Math.Between(3, 7);
+                  }
+                  if (this.isBrokie) {
+                    this.bolts += boltsDropped * 2;
+                  } else {
+                    this.bolts += boltsDropped;
+                  }
+                  this.updateBoltText();
+                  this.bloodstainQueue.push(enemyPos);
+                  // 15% chance to spawn an extra enemy
+                  if (Phaser.Math.Between(1, 100) <= 15) {
+                    this.createEnemy();
+                  }
+                  // 10% chance to spawn 2 enemies
+                  if (Phaser.Math.Between(1, 10) === 1) {
+                    this.createEnemy();
+                    this.createEnemy();
+                  } else {
+                    this.createEnemy();
+                  }
+                }
+              }
+            });
+            grenade.destroy();
+          }
+        });
+        // Add cooldown so grenade only fires once per key press
+        this._demomanGrenadeCooldown = time + (400 / 1.5); // 1.5x faster cooldown
       }
+    }
     // Tracker class: smoothly home bullets toward nearest enemy
     if (this.isTracker && this.bulletGroup && this.enemyGroup) {
       for (const bullet of this.bulletGroup) {
@@ -780,12 +804,21 @@ class GameScene extends Phaser.Scene {
     if (this.boltText) {
       this.updateBoltText();
     }
+    // Update timer in top right
+    if (this.timerText && typeof this.startTime === 'number') {
+      const elapsed = Math.floor((this.time.now - this.startTime) / 1000);
+      const min = Math.floor(elapsed / 60).toString().padStart(2, '0');
+      const sec = (elapsed % 60).toString().padStart(2, '0');
+      this.timerText.setText(`${min}:${sec}`);
+    }
     // Only rotate player to face pointer, do not move player toward pointer
     const pointer = this.input.activePointer;
-    const dx = pointer.x - this.player.x;
-    const dy = pointer.y - this.player.y;
-    const angle = Math.atan2(dy, dx);
-    this.player.setRotation(angle);
+    if (this.player && pointer) {
+      const dx = pointer.x - this.player.x;
+      const dy = pointer.y - this.player.y;
+      const angle = Math.atan2(dy, dx);
+      this.player.setRotation(angle);
+    }
 
     const keyUpObj = this.input.keyboard.addKey('W');
     const keyLeftObj = this.input.keyboard.addKey('A');
@@ -1217,23 +1250,34 @@ class GameScene extends Phaser.Scene {
 
     // ...existing code...
   }
+
+  // Example: Save high score when player dies
+  endGame() {
+    // ...existing code for ending the game...
+    const elapsed = Math.floor((this.time.now - this.startTime) / 1000);
+    const prevHighScore = parseInt(localStorage.getItem('highScore') || '0', 10);
+    if (elapsed > prevHighScore) {
+      localStorage.setItem('highScore', elapsed);
+    }
+    // ...existing code...
+  }
 }
 
 // --- Patch bullet creation to ignore wall collisions ---
 // Find all bullet creation and add this after setBody:
-    // bullet.body.collisionFilter.mask &= ~0x0008;
+// bullet.body.collisionFilter.mask &= ~0x0008;
 
 // Example for main gun bullets:
-    // bullet.setBody({ ... });
-    // bullet.body.collisionFilter.mask &= ~0x0008;
+// bullet.setBody({ ... });
+// bullet.body.collisionFilter.mask &= ~0x0008;
 
 // Example for drone bullets:
-    // bullet.setBody({ ... });
-    // bullet.body.collisionFilter.mask &= ~0x0008;
+// bullet.setBody({ ... });
+// bullet.body.collisionFilter.mask &= ~0x0008;
 
 // Example for splash drone bullets:
-    // bullet.setBody({ ... });
-    // bullet.body.collisionFilter.mask &= ~0x0008;
+// bullet.setBody({ ... });
+// bullet.body.collisionFilter.mask &= ~0x0008;
 
 // ...existing code...
 

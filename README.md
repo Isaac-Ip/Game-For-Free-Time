@@ -124,10 +124,15 @@ Controller: Radiate an damaging aura while pulsing a aura wave. <font color="#ff
 Ver. 1.9.1<br>
 Difficulty updates: has a 15% chance to spawn another enemy.
 
-Ver. 1.10.0
-Created the builder class.
-When key E is clicked, builds a temporary wall for 300 bolts.
+Ver. 1.10.0<br>
+Created the builder class.<br>
+When key E is clicked, builds a temporary wall for 300 bolts.<br>
 Duration of wall can be upgraded.
+
+Ver. 1.10.1<br>
+Upgrading wall duration now costs 500 bolts.<br>
+Fixed targeting bugs.<br>
+Created a leaderboard: Whoever lasts the longest has their time posted ingame.
 
 MORE TO COME SOON!<br>
 If you want something fixed or new added, fill this out: [LINK](https://docs.google.com/forms/d/e/1FAIpQLSdBAkZc1rAzE6f18CH9MnjB5y6Eiiyr9PpKyLDDSJMIWIeGSA/viewform?usp=header/)

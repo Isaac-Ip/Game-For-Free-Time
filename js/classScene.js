@@ -125,6 +125,25 @@ class ClassScene extends Phaser.Scene {
     builderButton.on('pointerdown', () => {
       this.scene.start('gameScene', { playerClass: 'builder' });
     });
+
+    // --- Show longest time survived and class used at the bottom ---
+    const highScoreData = localStorage.getItem('highScoreData');
+    let displayText = 'Longest Time: --:--';
+    if (highScoreData) {
+      try {
+        const { seconds, playerClass } = JSON.parse(highScoreData);
+        const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const sec = (seconds % 60).toString().padStart(2, '0');
+        displayText = `Longest Time: ${min}:${sec} (${playerClass || 'unknown'})`;
+      } catch (e) {
+        // ignore parse errors
+      }
+    }
+    this.add.text(960, 1040, displayText, {
+      font: '40px Arial',
+      fill: '#ff0',
+      align: 'center'
+    }).setOrigin(0.5, 1);
   }
 
 
